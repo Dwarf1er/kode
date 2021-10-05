@@ -81,7 +81,7 @@ class ReservedType(Enum):
     SET = auto()
     PLUS = auto()
     MINUS = auto()
-    TEE = auto()
+    SHOW = auto()
 
 OPERATORS = [ReservedType.PLUS, ReservedType.MINUS]
 

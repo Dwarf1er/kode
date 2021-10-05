@@ -1,4 +1,4 @@
-from .statements import Statements, Assignment, Operation, Tee
+from .statements import Statements, Assignment, Operation, Show
 from .tokens import Literal, LiteralType, ReservedType, Reserved, Identifier
 from .errors import InterpreterError
 from typing import Dict, List, Set
@@ -103,7 +103,7 @@ class Interpreter:
                     raise InterpreterError(token.span, "Unable to handle operation.")     
             
             return value
-        elif type(ast) == Tee:
+        elif type(ast) == Show:
             value = self.run(ast.statements, scope)[-1]
 
             print(value)

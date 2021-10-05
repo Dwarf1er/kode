@@ -85,7 +85,7 @@ class Operation(Statement):
     def __iter__(self):
         return self.__operation.__iter__()
 
-class Tee(Statement):
+class Show(Statement):
     __statements: Statements
 
     def __init__(self, statements: Statements):
@@ -97,7 +97,7 @@ class Tee(Statement):
 
     @classmethod
     def istype(cls, tokens: TokenStream):
-        tokens.nxt(ReservedType.TEE)
+        tokens.nxt(ReservedType.SHOW)
 
     @classmethod
     def parse(cls, tokens: TokenStream):
@@ -106,10 +106,10 @@ class Tee(Statement):
         statements = statementize(statement_tokens)
         if not tokens.empty(): tokens.pop()
 
-        return Tee(statements)
+        return Show(statements)
 
     def __str__(self) -> str:
-        return f"Tee({self.__statements})"
+        return f"Show({self.__statements})"
 
     def __repr__(self) -> str:
         return str(self)
@@ -117,7 +117,7 @@ class Tee(Statement):
     def __iter__(self):
         return self.__statements.__iter__()
 
-STATEMENT_TYPES = [Assignment, Operation, Tee]
+STATEMENT_TYPES = [Assignment, Operation, Show]
 
 def statementize(tokens: TokenStream) -> Statements:
     statements = []
