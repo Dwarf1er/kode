@@ -81,6 +81,7 @@ class ReservedType(Enum):
     SET = auto()
     PLUS = auto()
     MINUS = auto()
+    TEE = auto()
 
 OPERATORS = [ReservedType.PLUS, ReservedType.MINUS]
 
@@ -141,13 +142,15 @@ class TokenStream:
     def span(self) -> List[Span]:
         return [token.span for token in self.__tokens[self.__ptr:]]
 
-    def cnxt(self, value_types: any) -> bool:
+    def cnxt(self, value_types: any = None) -> bool:
         if self.__ptr >= len(self.__tokens): raise Exception("Peek out of bound.")
 
         if not type(value_types) == list:
             value_types = [value_types]
 
         for value_type in value_types:
+            if value_type == None: return True
+
             token = self.__tokens[self.__ptr]
             token_type = type(token)
             

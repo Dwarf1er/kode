@@ -16,13 +16,24 @@ class Statements(Statement):
     def __str__(self) -> str:
         return f"{self.__statements}"
 
+    def __iter__(self):
+        return self.__statements.__iter__()
+
 class Assignment(Statement):
     __identifier: Identifier
-    __statement: Statement
+    __statements: Statements
 
-    def __init__(self, identifier: Identifier, statement: Statement):
+    def __init__(self, identifier: Identifier, statements: Statements):
         self.__identifier = identifier
-        self.__statement = statement
+        self.__statements = statements
+
+    @property
+    def statements(self) -> Statements:
+        return self.__statements
+
+    @property
+    def identifier(self) -> Identifier:
+        return self.__identifier
 
     @classmethod
     def istype(cls, tokens: TokenStream):
@@ -34,13 +45,16 @@ class Assignment(Statement):
         identifier = tokens.pop()
         tokens.pop()
         statement_tokens = tokens.pop_until(Punctuation, True)
-        statement = statementize(statement_tokens)
-        tokens.pop()
+        statements = statementize(statement_tokens)
+        if not tokens.empty(): tokens.pop()
 
-        return Assignment(identifier, statement)
+        return Assignment(identifier, statements)
 
     def __str__(self) -> str:
-        return f"Assignment({self.__identifier},{self.__statement})"
+        return f"Assignment({self.__identifier},{self.__statements})"
+
+    def __iter__(self):
+        return self.__statements.__iter__()
 
 class Operation(Statement):
     __operation: List[any]
@@ -68,7 +82,42 @@ class Operation(Statement):
     def __repr__(self) -> str:
         return str(self)
 
-STATEMENT_TYPES = [Assignment, Operation]
+    def __iter__(self):
+        return self.__operation.__iter__()
+
+class Tee(Statement):
+    __statements: Statements
+
+    def __init__(self, statements: Statements):
+        self.__statements = statements
+
+    @property
+    def statements(self) -> Statements:
+        return self.__statements
+
+    @classmethod
+    def istype(cls, tokens: TokenStream):
+        tokens.nxt(ReservedType.TEE)
+
+    @classmethod
+    def parse(cls, tokens: TokenStream):
+        tokens.pop()
+        statement_tokens = tokens.pop_until(Punctuation, True)
+        statements = statementize(statement_tokens)
+        if not tokens.empty(): tokens.pop()
+
+        return Tee(statements)
+
+    def __str__(self) -> str:
+        return f"Tee({self.__statements})"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __iter__(self):
+        return self.__statements.__iter__()
+
+STATEMENT_TYPES = [Assignment, Operation, Tee]
 
 def statementize(tokens: TokenStream) -> Statements:
     statements = []

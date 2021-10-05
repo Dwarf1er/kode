@@ -6,3 +6,10 @@ class ParseError(Exception):
     def __init__(self, span: Span, message: str):
         self.span = span
         super().__init__(message)
+    
+class InterpreterError(Exception):
+    span: Span
+
+    def __init__(self, span: Span, message: str):
+        self.span = span
+        super().__init__(message)

@@ -1,5 +1,6 @@
 from .tokens import spanize, tokenize
 from .statements import statementize
+from .interpreter import interpret
 from .errors import ParseError
 
 def parse(source: str):

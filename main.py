@@ -1,5 +1,5 @@
 import argparse
-from kode import parse
+from kode import parse, interpret
 
 def main():
     parser = argparse.ArgumentParser(description="Parser for Kode")
@@ -12,9 +12,15 @@ def main():
 
     AST = parse(source)
 
-    if not AST: return
+    if AST == None: return
 
     if args.ast: print(AST)
+
+    result = interpret(source, AST)
+
+    if result == None: return
+
+    print(result)
 
 if __name__ == "__main__":
     main()
