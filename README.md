@@ -15,3 +15,11 @@ You can install the requirments for this project as follows:
 ```
 sudo apt install python3
 ```
+
+## Running
+
+You can interpret a file as follows:
+
+```
+python3 main.py /path/to/file.kode
+```
