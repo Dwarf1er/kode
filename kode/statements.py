@@ -100,7 +100,7 @@ class Assignment(Statement):
 
     @property
     def span(self):
-        return [self.__identifier.span] + self.__statements.span
+        return self.__identifier.span + self.__statements.span
 
     @property
     def statements(self) -> Statements:

@@ -1,5 +1,5 @@
 import argparse
-from kode import parse, statementize, tokenize, spanize, Interpreter
+from kode import statementize, tokenize, spanize, Interpreter
 import glob
 import os.path
 import time

@@ -1,9 +1,33 @@
 from .statements import IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
-from .tokens import OperatorType, tokenize
-from .span import spanize
+from .tokens import Literal, Operator, OperatorType, tokenize
+from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
 from typing import Dict, List
 from abc import ABC
+
+def get_literal(value: any, spanned_objects: list):
+    if type(value) == Literal: raise RuntimeError("Passing a literal.")
+    if type(value) == str: value = '"' + value + '"'
+
+    spans: List[Span] = []
+
+    for so in spanned_objects:
+        if type(so) == Span:
+            spans.append(so)
+        else:
+            spans.append(so.span)
+
+    starts = [span.start for span in spans]
+    ends = [span.end for span in spans]
+
+    return Literal(
+        Span(
+            value=str(value),
+            file_path=spans[0].file_path,
+            start=min(starts),
+            end=max(ends)
+        )
+    )
 
 class Scope:
     __values: Dict[str, any]
@@ -57,53 +81,120 @@ class StatementsInterpreter(StatementInterpreter):
 
     def interpret(self, interpreter: 'Interpreter'):
         outputs = []
+        spanned_objects = []
 
         for statement in self._statement:
+            spanned_objects.append(statement)
             output = interpreter.run(statement)
             outputs.append(output)
 
-        return outputs
+        return outputs[-1]
 
 class AssignmentInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == Assignment
 
     def interpret(self, interpreter: 'Interpreter'):
-        value = interpreter.run(self._statement.statements)[-1]
+        literal = interpreter.run(self._statement.statements)
 
-        interpreter.scope.put(self._statement.identifier.value, value)
+        interpreter.scope.put(self._statement.identifier.value, literal.value)
 
-        return value
+        # TODO: Add SET to span.
+        return literal
+
+class OperatorInterpreter(ABC):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return False
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return None
+
+class PlusInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.PLUS
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value + rhs.value
+
+class MinusInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.MINUS
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value - rhs.value
+
+class TimesInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.TIMES
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value * rhs.value
+
+class DivideInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.DIVIDE
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value // rhs.value
+
+class ModInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.MOD
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value % rhs.value
+
+class EqualsInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.EQUALS
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value == rhs.value 
+
+OPERATOR_INTERPRETERS = [
+    PlusInterpreter,
+    MinusInterpreter,
+    TimesInterpreter,
+    DivideInterpreter,
+    ModInterpreter,
+    EqualsInterpreter
+]
 
 class OperationInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == Operation
 
-    def __dp_interpret(self, op_tree: any, interpreter: 'Interpreter'):
-        if type(op_tree) == Statements: return interpreter.run(op_tree)[-1]
+    def __dp_interpret(self, op_tree: any, interpreter: 'Interpreter') -> Literal:
+        if type(op_tree) == Statements: return interpreter.run(op_tree)
 
         lhs = self.__dp_interpret(op_tree[0], interpreter)
         rhs = self.__dp_interpret(op_tree[2], interpreter)
 
         operator: OperatorType = op_tree[1].enum_type
 
-        if operator == OperatorType.PLUS:
-            return lhs + rhs
-        elif operator == OperatorType.MINUS:
-            return lhs - rhs
-        elif operator == OperatorType.TIMES:
-            return lhs * rhs
-        elif operator == OperatorType.DIVIDE:
-            # TODO: Check int and float?
-            return lhs // rhs
-        elif operator == OperatorType.MOD:
-            return lhs % rhs
-        elif operator == OperatorType.EQUALS:
-            return lhs == rhs
+        for OP in OPERATOR_INTERPRETERS:
+            if OP.can_interpret(operator):
+                value = OP.interpret(lhs, rhs)
+
+                return get_literal(value, spanned_objects=[lhs, rhs])
         else:
             raise InterpreterError(self._statement.operator, "Unimplemented operator.")
 
-    def interpret(self, interpreter: 'Interpreter'):
+    def interpret(self, interpreter: 'Interpreter') -> Literal:
         return self.__dp_interpret(self._statement.op_tree, interpreter)
 
 class ShowInterpreter(StatementInterpreter):
@@ -111,25 +202,30 @@ class ShowInterpreter(StatementInterpreter):
         return type(self._statement) == Show
 
     def interpret(self, interpreter: 'Interpreter'):
-        value = interpreter.run(self._statement.statements)[-1]
+        literal = interpreter.run(self._statement.statements)
 
-        interpreter.display(value)
+        interpreter.display(literal.value)
 
-        return value
+        # TODO: Add SHOW to span.
+        return literal
 
 class LiteralInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == LiteralStatement
 
     def interpret(self, interpreter: 'Interpreter'):
-        return self._statement.literal.value
+        value = self._statement.literal.value
+
+        return get_literal(value, spanned_objects=[self._statement])
 
 class IdentifierInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == IdentifierStatement
 
     def interpret(self, interpreter: 'Interpreter'):
-        return interpreter.scope.get(self._statement.identifier.value)
+        value = interpreter.scope.get(self._statement.identifier.value)
+
+        return get_literal(value, spanned_objects=[self._statement])
 
 STATEMENT_INTERPRETERS = [
     StatementsInterpreter, 
@@ -165,14 +261,15 @@ class Interpreter:
 
         if not self.__silent: print(line, end=terminator)
 
-    def run(self, ast: Statement = None) -> List[any]:
+    def run(self, ast: Statement = None) -> Literal:
         if ast == None: ast = self.__ast
 
         for SI in STATEMENT_INTERPRETERS:
             si = SI(ast)
 
             if si.can_interpret():
-                return si.interpret(self)
+                value = si.interpret(self)
+                return value
 
         raise InterpreterError(ast.span, "Cannot interpret statement.")
 
@@ -189,6 +286,6 @@ def parse(source: str, file_path: str) -> Statements:
 def interpret(ast: Statements) -> any:
     try:
         interpeter = Interpreter(ast)
-        return interpeter.run()[-1]
+        return interpeter.run()
     except InterpreterError as err:
         handle_error(err)

@@ -24,6 +24,10 @@ class Span:
     def value(self):
         return self.__value
 
+    @value.setter
+    def value(self, v: str):
+        self.__value = v
+
     @property
     def file_path(self):
         return self.__file_path
@@ -44,7 +48,7 @@ class Span:
         )
 
     def __add__(self, other: 'Span'):
-        if not type(other) == Span: raise Exception(f"Cannot add non-Span to Span.")
+        if not type(other) == Span: raise Exception(f"Cannot add `{type(other)}` to Span.")
 
         new_start = min(self.start, other.start)
         new_end = max(self.end, other.end)

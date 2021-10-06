@@ -125,7 +125,10 @@ class Literal(Token):
         raise ParseError(span, "Unknown literal type.")
 
     def __str__(self) -> str:
-        return f"Literal({self.value},{self.ltype})"
+        try:
+            return f"Literal({self.value},{self.ltype})"
+        except:
+            return f"Literal({self.span.value},ERROR)"
 
 class ReservedType(Enum):
     IF = auto()
