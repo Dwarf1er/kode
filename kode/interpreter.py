@@ -64,11 +64,7 @@ class Interpreter:
 
             return outputs
         elif type(ast) == Assignment:
-            scope.push()
-
             value = self.run(ast.statements, scope)[-1]
-
-            scope.pop()
 
             scope.put(ast.identifier.value, value)
 

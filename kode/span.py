@@ -59,7 +59,7 @@ class Span:
 
 def spanize(source: str) -> List[Span]:
     from .tokens import PunctuationType
-    
+
     source = Span(source)
     spans = []
 
