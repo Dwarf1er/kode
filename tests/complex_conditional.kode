@@ -1,0 +1,19 @@
+IF FALSE THEN
+    SHOW 1.
+ELSE IF FALSE THEN
+    SHOW 2.
+ELSE
+    SHOW 3.
+END
+
+IF TRUE THEN
+    IF FALSE THEN
+        SHOW 1.
+    ELSE IF TRUE THEN
+        SHOW 2.
+    ELSE
+        SHOW 3.
+    END
+ELSE
+    SHOW 4.
+END

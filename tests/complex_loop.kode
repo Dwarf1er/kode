@@ -1,0 +1,8 @@
+SET X TO 1.
+WHILE NOT X EQUALS 5 DO
+    SET Y TO 1.
+    WHILE NOT Y EQUALS 5 DO
+        SHOW X.
+        SHOW Y.
+    END
+END
