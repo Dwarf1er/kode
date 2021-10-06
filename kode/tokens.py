@@ -2,7 +2,8 @@ from abc import ABC
 from enum import Enum, auto
 from typing import Tuple, List
 import re
-from .utils import isnumber, Span
+from .utils import isnumber
+from .span import Span
 from .errors import ParseError
 
 class Token(ABC):
@@ -203,36 +204,6 @@ class TokenStream:
 
     def __str__(self) -> str:
         return f"TokenStream({self.__ptr},{self.__tokens})"
-
-def spanize(source: str) -> List[Span]:
-    source = Span(source)
-    spans = []
-
-    i = 0
-    is_space = source.value[0].isspace()
-    while i < len(source):
-        c = source.value[i]
-
-        if c in [p.value for p in PunctuationType]:
-            spans.append(source.pop(i))
-            is_space = False
-            i = 0
-        elif c.isspace():
-            if not is_space:
-                is_space = True
-                spans.append(source.pop(i))
-                i = 0
-        elif is_space:
-            is_space = False
-            spans.append(source.pop(i))
-            i = 0
-
-        i += 1
-
-    if len(source) > 0:
-        spans.append(source)
-
-    return spans
 
 def tokenize(spans: List[Span]) -> TokenStream:
     tokens = []

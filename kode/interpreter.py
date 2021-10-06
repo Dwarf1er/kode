@@ -1,6 +1,7 @@
-from .statements import Statements, Assignment, Operation, Show
-from .tokens import Literal, LiteralType, ReservedType, Reserved, Identifier
-from .errors import InterpreterError
+from .statements import Statements, Assignment, Operation, Show, statementize
+from .tokens import Literal, LiteralType, ReservedType, Reserved, Identifier, tokenize
+from .span import spanize
+from .errors import ParseError, InterpreterError, handle_error
 from typing import Dict, List, Set
 
 class Scope:
@@ -77,28 +78,28 @@ class Interpreter:
             op = None
             
             for token in ast:
-                v = None
+                token_value = None
 
                 if type(token) == Literal:
-                    v = self.get_literal_value(token)
+                    token_value = self.get_literal_value(token)
                 elif type(token) == Reserved:
                     op = token.rtype
                 elif type(token) == Identifier:
                     try:
-                        v = scope.get(token.value)
+                        token_value = scope.get(token.value)
                     except KeyError as err:
                         raise InterpreterError(token.span, "Variable not found in scope.")
 
-                if v == None: continue
+                if token_value == None: continue
 
                 if value == None:
-                    value = v
+                    value = token_value
                     continue
 
                 if op == ReservedType.PLUS:
-                    value += v
+                    value += token_value
                 elif op == ReservedType.MINUS:
-                    value -= v
+                    value -= token_value
                 else:
                     raise InterpreterError(token.span, "Unable to handle operation.")     
             
@@ -110,36 +111,15 @@ class Interpreter:
 
             return value
 
-def interpret(source: str, ast: Statements):
-    interpeter = Interpreter(ast)
-
+def parse(source: str):
     try:
+        return statementize(tokenize(spanize(source)))
+    except ParseError as err:
+        handle_error(err, source)
+
+def interpret(source: str, ast: Statements):
+    try:
+        interpeter = Interpreter(ast)
         return interpeter.run()[-1]
     except InterpreterError as err:
-        spans = err.span
-
-        if not type(spans) == list:
-            spans = [spans]
-
-        source_pointers = [False] * len(source)
-
-        for span in spans:
-            for i in range(span.offset, span.end):
-                source_pointers[i] = True
-
-        print("|")
-        print("| INTERPRETER ERROR:", err)
-        print("|")
-
-        start = 0
-        source_split = source.split("\n")
-        for i, line in enumerate(source_split, 1):
-            end = start + len(line) + 1
-            ptrs = source_pointers[start:end]
-
-            if any(ptrs):
-                line_num = ("(%0"+ str((len(source_split) // 10) + 1) +"d)") % i
-                print(f"| {line_num}", line.replace("\t", " "))
-                print("|" + " " * (len(line_num) + 1), ''.join("^" if p else " " for p in ptrs))
-
-            start = end
+        handle_error(err, source)
