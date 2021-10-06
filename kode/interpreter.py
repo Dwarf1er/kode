@@ -79,21 +79,30 @@ class OperationInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == Operation
 
-    def interpret(self, interpreter: 'Interpreter'):
-        lhs = interpreter.run(self._statement.lhs)
-        lhs = lhs[-1]
+    def __dp_interpret(self, op_tree: any, interpreter: 'Interpreter'):
+        if type(op_tree) == Statements: return interpreter.run(op_tree)[-1]
 
-        rhs = interpreter.run(self._statement.rhs)
-        rhs = rhs[-1]
+        lhs = self.__dp_interpret(op_tree[0], interpreter)
+        rhs = self.__dp_interpret(op_tree[2], interpreter)
 
-        operator: ReservedType = self._statement.operator.rtype
+        operator: ReservedType = op_tree[1].rtype
 
         if operator == ReservedType.PLUS:
             return lhs + rhs
         elif operator == ReservedType.MINUS:
             return lhs - rhs
+        elif operator == ReservedType.TIMES:
+            return lhs * rhs
+        elif operator == ReservedType.DIVIDE:
+            # TODO: Check int and float?
+            return lhs // rhs
+        elif operator == ReservedType.MOD:
+            return lhs % rhs
         else:
-            raise Exception("Unimplemented operator.")
+            raise InterpreterError(self._statement.operator, "Unimplemented operator.")
+
+    def interpret(self, interpreter: 'Interpreter'):
+        return self.__dp_interpret(self._statement.op_tree, interpreter)
 
 class ShowInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:

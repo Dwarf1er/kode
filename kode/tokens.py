@@ -86,12 +86,21 @@ class ReservedType(Enum):
     PLUS = auto()
     MINUS = auto()
     SHOW = auto()
+    TIMES = auto()
+    DIVIDE = auto()
+    MOD = auto()
 
 OPERATORS = [
     ReservedType.PLUS, 
-    ReservedType.MINUS
+    ReservedType.MINUS,
+    ReservedType.TIMES,
+    ReservedType.DIVIDE,
+    ReservedType.MOD
 ]
 OPERATOR_PRECEDENCE = {
+    ReservedType.MOD: 2,
+    ReservedType.TIMES: 2,
+    ReservedType.DIVIDE: 2,
     ReservedType.PLUS: 1,
     ReservedType.MINUS: 1
 }
@@ -174,7 +183,7 @@ class TokenStream:
         return False
 
     def nxt(self, value_type: any) -> 'TokenStream':
-        if not self.cnxt(value_type): raise Exception(value_type)
+        if not self.cnxt(value_type): raise RuntimeWarning(value_type)
 
         self.__ptr += 1
 

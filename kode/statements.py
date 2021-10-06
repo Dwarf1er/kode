@@ -51,7 +51,7 @@ class LiteralStatement(Statement):
 
     @classmethod
     def istype(cls, tokens: TokenStream):
-        if len(tokens) != 1: raise Exception("Not single literal.")
+        if len(tokens) != 1: raise RuntimeWarning("Not single literal.")
         tokens.nxt(Literal)
 
     @classmethod
@@ -77,7 +77,7 @@ class IdentifierStatement(Statement):
 
     @classmethod
     def istype(cls, tokens: TokenStream):
-        if len(tokens) != 1: raise Exception("Not single identifier.")
+        if len(tokens) != 1: raise RuntimeWarning("Not single identifier.")
         tokens.nxt(Identifier)
 
     @classmethod
@@ -129,35 +129,49 @@ class Assignment(Statement):
         return self.__statements.__iter__()
 
 class Operation(Statement):
-    __lhs: Statement
-    __operator: Reserved
-    __rhs: Statement
+    __op_tree: any
 
-    def __init__(self, lhs: Statement, operator: Reserved, rhs: Statement):
-        self.__lhs = lhs
-        self.__operator = operator
-        self.__rhs = rhs
+    def __init__(self, op_tree: any):
+        self.__op_tree = op_tree
 
     @property
     def span(self):
-        return self.__lhs.span + [self.__operator.span] + self.__rhs.span
+        return None
 
     @property
-    def lhs(self):
-        return self.__lhs
-
-    @property
-    def operator(self):
-        return self.__operator
-
-    @property
-    def rhs(self):
-        return self.__rhs
+    def op_tree(self):
+        return self.__op_tree
 
     @classmethod
     def istype(cls, tokens: TokenStream):
         while not tokens.empty():
             tokens.nxt([Identifier, Literal] + OPERATORS)
+
+    @classmethod
+    def __dp_parse(cls, operation: any):
+        if len(operation) == 0: raise Exception("Invalid empty operand.")
+        if len(operation) == 1: return operation[0]
+
+        min_index = None
+        min_precedence = float("inf")
+
+        for i, value in enumerate(operation):
+            if not type(value) == Reserved: continue
+
+            precedence = OPERATOR_PRECEDENCE[value.rtype]
+
+            if precedence <= min_precedence:
+                min_index = i
+                min_precedence = precedence
+
+        lhs = operation[:min_index]
+        operator = operation[min_index]
+        rhs = operation[min_index + 1:]
+
+        lhs = cls.__dp_parse(lhs)
+        rhs = cls.__dp_parse(rhs)
+
+        return (lhs, operator, rhs)
 
     @classmethod
     def parse(cls, tokens: TokenStream):
@@ -166,27 +180,23 @@ class Operation(Statement):
         while not tokens.empty():
             operation.append(tokens.pop())
 
-        max_index = -1
-        max_precedence = -1
+        grouped_operation = []
 
-        for i, token in enumerate(operation):
-            if not type(token) == Reserved: continue
+        group = []
+        for token in operation:
+            if type(token) == Reserved and token.rtype in OPERATOR_PRECEDENCE:
+                grouped_operation.append(statementize(TokenStream(group)))
+                grouped_operation.append(token)
+                group = []
+            else:
+                group.append(token)
 
-            if token.rtype in OPERATOR_PRECEDENCE:
-                precedence = OPERATOR_PRECEDENCE[token.rtype]
+        if len(group) > 0:
+            grouped_operation.append(statementize(TokenStream(group)))
 
-                if precedence >= max_precedence:
-                    max_index = i
-                    max_precedence = precedence
+        op_tree = cls.__dp_parse(grouped_operation)
 
-        lhs = operation[:max_index]
-        operator = operation[max_index]
-        rhs = operation[max_index+1:]
-
-        lhs = statementize(TokenStream(lhs))
-        rhs = statementize(TokenStream(rhs))
-
-        return Operation(lhs=lhs, operator=operator, rhs=rhs)
+        return Operation(op_tree)
 
     def __str__(self) -> str:
         return f"Operation({self.__lhs}, {self.__operator}, {self.__rhs})"
@@ -232,10 +242,10 @@ class Show(Statement):
 
 STATEMENT_TYPES = [
     LiteralStatement, 
-    IdentifierStatement, 
-    Assignment, 
-    Operation, 
-    Show
+    IdentifierStatement,
+    Show,
+    Assignment,
+    Operation,
 ]
 
 def statementize(tokens: TokenStream) -> Statements:
@@ -245,14 +255,15 @@ def statementize(tokens: TokenStream) -> Statements:
         for StatementType in STATEMENT_TYPES:
             try:
                 StatementType.istype(tokens.copy())
-                # print(StatementType, tokens)
                 statement = StatementType.parse(tokens)
                 statements.append(statement)
                 break
             except ParseError as err:
                 raise err
-            except Exception as err:
+            except RuntimeWarning as err:
                 pass
+            except Exception as err:
+                raise err
         else:
             raise ParseError(span=tokens.span, message=f"Could not match any statement to tokens.")
 
