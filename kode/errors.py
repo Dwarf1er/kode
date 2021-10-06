@@ -1,5 +1,4 @@
 from .span import Span
-from typing import List
 
 class KodeError(Exception):
     span: Span
@@ -21,6 +20,8 @@ def handle_error(error: KodeError):
 
     if not type(spans) == list:
         spans = [spans]
+
+    if len(spans) == 0: raise error
 
     file_path = spans[0].file_path 
     with open(file_path) as h:

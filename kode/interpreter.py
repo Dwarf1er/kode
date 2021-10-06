@@ -1,8 +1,9 @@
-from .statements import Statements, Assignment, Operation, Show, statementize
-from .tokens import Literal, LiteralType, ReservedType, Reserved, Identifier, tokenize
+from .statements import IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
+from .tokens import ReservedType, tokenize
 from .span import spanize
 from .errors import ParseError, InterpreterError, handle_error
-from typing import Dict, List, Set
+from typing import Dict, List
+from abc import ABC
 
 class Scope:
     __values: Dict[str, any]
@@ -38,91 +39,139 @@ class Scope:
     def __str__(self) -> str:
         return f"Scope({self.__values},{self.__depths})"
 
+class StatementInterpreter(ABC):
+    _statement: Statement
+
+    def __init__(self, statement: Statement):
+        self._statement = statement
+
+    def can_interpret(self) -> bool:
+        return False
+
+    def interpret(self, interpreter: 'Interpreter'):
+        pass
+
+class StatementsInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Statements
+
+    def interpret(self, interpreter: 'Interpreter'):
+        outputs = []
+
+        for statement in self._statement:
+            output = interpreter.run(statement)
+            outputs.append(output)
+
+        return outputs
+
+class AssignmentInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Assignment
+
+    def interpret(self, interpreter: 'Interpreter'):
+        value = interpreter.run(self._statement.statements)[-1]
+
+        interpreter.scope.put(self._statement.identifier.value, value)
+
+        return value
+
+class OperationInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Operation
+
+    def interpret(self, interpreter: 'Interpreter'):
+        lhs = interpreter.run(self._statement.lhs)
+        lhs = lhs[-1]
+
+        rhs = interpreter.run(self._statement.rhs)
+        rhs = rhs[-1]
+
+        operator: ReservedType = self._statement.operator.rtype
+
+        if operator == ReservedType.PLUS:
+            return lhs + rhs
+        elif operator == ReservedType.MINUS:
+            return lhs - rhs
+        else:
+            raise Exception("Unimplemented operator.")
+
+class ShowInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Show
+
+    def interpret(self, interpreter: 'Interpreter'):
+        value = interpreter.run(self._statement.statements)[-1]
+
+        interpreter.display(value)
+
+        return value
+
+class LiteralInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == LiteralStatement
+
+    def interpret(self, interpreter: 'Interpreter'):
+        return self._statement.literal.value
+
+class IdentifierInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == IdentifierStatement
+
+    def interpret(self, interpreter: 'Interpreter'):
+        return interpreter.scope.get(self._statement.identifier.value)
+
+STATEMENT_INTERPRETERS = [
+    StatementsInterpreter, 
+    AssignmentInterpreter, 
+    OperationInterpreter, 
+    ShowInterpreter,
+    LiteralInterpreter,
+    IdentifierInterpreter
+]
+
 class Interpreter:
     __ast: Statements
     __stdout: str
     __silent: bool
+    __scope: Scope
 
     def __init__(self, ast: Statements, silent: bool = False):
         self.__ast = ast
         self.__stdout = ""
         self.__silent = silent
+        self.__scope = Scope()
+
+    @property
+    def scope(self):
+        return self.__scope
 
     @property
     def stdout(self) -> str:
         return self.__stdout
 
-    def __print(self, line: str, terminator: str = "\n"):
+    def display(self, line: str, terminator: str = "\n"):
         self.__stdout += str(line) + terminator
 
         if not self.__silent: print(line, end=terminator)
 
-    def get_literal_value(self, literal: Literal) -> any:
-        if literal.ltype == LiteralType.NUMBER:
-            return int(literal.value)
-        elif literal.ltype == LiteralType.STRING:
-            return str(literal.value)
-
-    def run(self, ast: Statements = None, scope: Scope = None) -> List[any]:
+    def run(self, ast: Statement = None) -> List[any]:
         if ast == None: ast = self.__ast
-        if scope == None: scope = Scope()
 
-        if type(ast) == Statements:
-            outputs = []
+        for SI in STATEMENT_INTERPRETERS:
+            si = SI(ast)
 
-            for statement in ast:
-                output = self.run(statement, scope)
+            if si.can_interpret():
+                return si.interpret(self)
 
-                outputs.append(output)
-
-            return outputs
-        elif type(ast) == Assignment:
-            value = self.run(ast.statements, scope)[-1]
-
-            scope.put(ast.identifier.value, value)
-
-            return value
-        elif type(ast) == Operation:
-            value = None
-            op = None
-            
-            for token in ast:
-                token_value = None
-
-                if type(token) == Literal:
-                    token_value = self.get_literal_value(token)
-                elif type(token) == Reserved:
-                    op = token.rtype
-                elif type(token) == Identifier:
-                    try:
-                        token_value = scope.get(token.value)
-                    except KeyError as err:
-                        raise InterpreterError(token.span, "Variable not found in scope.")
-
-                if token_value == None: continue
-
-                if value == None:
-                    value = token_value
-                    continue
-
-                if op == ReservedType.PLUS:
-                    value += token_value
-                elif op == ReservedType.MINUS:
-                    value -= token_value
-                else:
-                    raise InterpreterError(token.span, "Unable to handle operation.")     
-            
-            return value
-        elif type(ast) == Show:
-            value = self.run(ast.statements, scope)[-1]
-
-            self.__print(value)
-
-            return value
+        raise InterpreterError(ast.span, "Cannot interpret statement.")
 
 def parse(source: str, file_path: str) -> Statements:
     try:
-        return statementize(tokenize(spanize(source, file_path)))
+        span = spanize(source, file_path)
+        tokens = tokenize(span)
+        ast = statementize(tokens)
+
+        return ast
     except ParseError as err:
         handle_error(err)
 

@@ -32,10 +32,13 @@ class LiteralType(Enum):
 class Literal(Token):
     @property
     def value(self) -> any:
-        if self.ltype == LiteralType.STRING:
+        ltype = self.ltype
+        if ltype == LiteralType.STRING:
             return self.span.value[1:-1]
+        elif ltype == LiteralType.NUMBER:
+            return int(self.span.value)
         else:
-            return self.span.value
+            raise Exception("Unimplemented literal type.")
 
     @property
     def ltype(self) -> LiteralType:
@@ -84,7 +87,14 @@ class ReservedType(Enum):
     MINUS = auto()
     SHOW = auto()
 
-OPERATORS = [ReservedType.PLUS, ReservedType.MINUS]
+OPERATORS = [
+    ReservedType.PLUS, 
+    ReservedType.MINUS
+]
+OPERATOR_PRECEDENCE = {
+    ReservedType.PLUS: 1,
+    ReservedType.MINUS: 1
+}
 
 class Reserved(Token):
     @property
@@ -194,13 +204,16 @@ class TokenStream:
         return TokenStream(self.__tokens, self.__ptr)
 
     def empty(self) -> bool:
-        return self.__ptr >= len(self.__tokens)
+        return len(self) == 0
 
     def reset(self):
         self.__ptr = 0
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __len__(self):
+        return max(len(self.__tokens) - self.__ptr, 0)
 
     def __str__(self) -> str:
         return f"TokenStream({self.__ptr},{self.__tokens})"
