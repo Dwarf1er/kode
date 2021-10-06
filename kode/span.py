@@ -76,16 +76,20 @@ def spanize(source: str, file_path: str) -> List[Span]:
 
         if c in [p.value for p in PunctuationType]:
             spans.append(source.pop(i))
-            is_space = False
+            spans.append(source.pop())
+            if len(source.value) > 0:
+                is_space = source.value[0].isspace()
+            else:
+                is_space = False
             i = 0
         elif c.isspace():
             if not is_space:
-                is_space = True
                 spans.append(source.pop(i))
+                is_space = True
                 i = 0
         elif is_space:
-            is_space = False
             spans.append(source.pop(i))
+            is_space = False
             i = 0
 
         i += 1

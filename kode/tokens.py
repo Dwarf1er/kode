@@ -2,7 +2,6 @@ from abc import ABC
 from enum import Enum, auto
 from typing import Tuple, List
 import re
-from .utils import isnumber
 from .span import Span
 from .errors import ParseError
 
@@ -27,7 +26,22 @@ STRING_DELIMITERS = ["'", '"']
 
 class LiteralType(Enum):
     STRING = auto()
-    NUMBER = auto()
+    INTEGER = auto()
+    BOOLEAN = auto()
+    FLOAT = auto()
+
+def isfloat(value: str):
+  try:
+    float(value)
+    return True
+  except ValueError:
+    return False
+
+def isint(value: str):
+    if value.startswith("-"):
+        return value[1:].isdigit()
+    else:
+        return value.isdigit()
 
 class Literal(Token):
     @property
@@ -35,24 +49,37 @@ class Literal(Token):
         ltype = self.ltype
         if ltype == LiteralType.STRING:
             return self.span.value[1:-1]
-        elif ltype == LiteralType.NUMBER:
+        elif ltype == LiteralType.INTEGER:
             return int(self.span.value)
+        elif ltype == LiteralType.FLOAT:
+            return float(self.span.value)
+        elif ltype == LiteralType.BOOLEAN:
+            return self.span.value.upper() == "TRUE"
         else:
             raise Exception("Unimplemented literal type.")
 
     @property
     def ltype(self) -> LiteralType:
-        if self.span.value[0] in STRING_DELIMITERS:
+        value = self.span.value
+
+        if value[0] in STRING_DELIMITERS:
             return LiteralType.STRING
-        elif isnumber(self.span.value):
-            return LiteralType.NUMBER
+        elif isint(value):
+            return LiteralType.INTEGER
+        elif isfloat(value):
+            return LiteralType.FLOAT
+        elif value.upper() in ["TRUE", "FALSE"]:
+            return LiteralType.BOOLEAN
         else:
             raise ParseError(self.span, f"Invalid literal type.")
 
     @classmethod
     def istype(cls, span: Span) -> bool:
-        if span.value[0] in STRING_DELIMITERS: return True
-        if isnumber(span.value): return True
+        value = span.value
+
+        if value[0] in STRING_DELIMITERS: return True
+        if value == "-" or value.isdigit(): return True
+        if value.upper() in ["TRUE", "FALSE"]: return True
 
         return False
     
@@ -60,19 +87,42 @@ class Literal(Token):
     def parse(cls, spans: List[Span]) -> Tuple['Literal', int]:
         span = spans[0]
 
-        if isnumber(span.value):
-            return Literal(span), 1
+        if span.value == "-" or span.value.isdigit():
+            i = 0
+
+            for i, iter_span in enumerate(spans):
+                if iter_span.value == "-":
+                    if not i == 0:
+                        break
+                elif iter_span.value == ".":
+                    if i >= len(spans) - 1: 
+                        break
+                    if not spans[i + 1].value.isdigit(): 
+                        break
+                elif iter_span.value.isdigit():
+                    pass
+                else:
+                    break
+            for iter_span in spans[:i]:
+                span = span + iter_span
+
+            return Literal(span), i
 
         if span.value[0] in STRING_DELIMITERS:
-            tt = span.value[0]
+            string_terminator = span.value[0]
 
             for j, ns in enumerate(spans):
-                if ns.value.endswith(tt):
+                if ns.value.endswith(string_terminator):
                     for nss in spans[:j+1]:
                         span = span + nss
                     return Literal(span), j+1
             else:
                 raise ParseError(span, f"String not closed.")
+
+        if span.value.upper() in ["TRUE", "FALSE"]:
+            return Literal(span), 1
+
+        raise ParseError(span, "Unknown literal type.")
 
     def __str__(self) -> str:
         return f"Literal({self.value},{self.ltype})"
@@ -89,20 +139,23 @@ class ReservedType(Enum):
     TIMES = auto()
     DIVIDE = auto()
     MOD = auto()
+    EQUALS = auto()
 
 OPERATORS = [
     ReservedType.PLUS, 
     ReservedType.MINUS,
     ReservedType.TIMES,
     ReservedType.DIVIDE,
-    ReservedType.MOD
+    ReservedType.MOD,
+    ReservedType.EQUALS
 ]
 OPERATOR_PRECEDENCE = {
-    ReservedType.MOD: 2,
-    ReservedType.TIMES: 2,
-    ReservedType.DIVIDE: 2,
-    ReservedType.PLUS: 1,
-    ReservedType.MINUS: 1
+    ReservedType.MOD: 15,
+    ReservedType.TIMES: 15,
+    ReservedType.DIVIDE: 15,
+    ReservedType.PLUS: 14,
+    ReservedType.MINUS: 14,
+    ReservedType.EQUALS: 11
 }
 
 class Reserved(Token):
@@ -134,11 +187,16 @@ class Identifier(Token):
         return Identifier(spans[0]), 1
 
 class PunctuationType(Enum):
-    Period = "."
+    PERIOD = "."
+    MINUS = "-"
 
 class Punctuation(Token):
     def __str__(self) -> str:
         return f"Punctuation({self.value})"
+
+    @property
+    def ptype(self) -> PunctuationType:
+        return PunctuationType(self.value)
 
     @classmethod
     def istype(cls, span: Span) -> bool:
@@ -148,7 +206,13 @@ class Punctuation(Token):
     def parse(cls, spans: List[Span]) -> Tuple['Punctuation', int]:
         return Punctuation(spans[0]), 1
 
-TOKEN_TYPES = [Punctuation, Literal, Reserved, Literal, Identifier]
+TOKEN_TYPES = [
+    Literal, 
+    Punctuation, 
+    Reserved, 
+    Literal, 
+    Identifier
+]
 
 class TokenStream:
     __tokens: List[Token]
@@ -174,6 +238,8 @@ class TokenStream:
             token = self.__tokens[self.__ptr]
             token_type = type(token)
             
+            if type(value_type) == PunctuationType and token_type == Punctuation:
+                if token.ptype == value_type: return True
             if type(value_type) == ReservedType and token_type == Reserved:
                 if token.rtype == value_type: return True
             elif type(value_type) == LiteralType and token_type == Literal:
@@ -245,6 +311,6 @@ def tokenize(spans: List[Span]) -> TokenStream:
                 i += offset
                 break
         else:
-            raise ParseError(span, f"Invalid token type.")
+            raise ParseError(span, f"Unknown token type.")
 
     return TokenStream(tokens)

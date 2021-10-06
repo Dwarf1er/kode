@@ -98,6 +98,8 @@ class OperationInterpreter(StatementInterpreter):
             return lhs // rhs
         elif operator == ReservedType.MOD:
             return lhs % rhs
+        elif operator == ReservedType.EQUALS:
+            return lhs == rhs
         else:
             raise InterpreterError(self._statement.operator, "Unimplemented operator.")
 

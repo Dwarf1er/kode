@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import List
-from .tokens import OPERATOR_PRECEDENCE, TokenStream, ReservedType, Identifier, Punctuation, Reserved, Literal, OPERATORS
+from .tokens import OPERATOR_PRECEDENCE, PunctuationType, TokenStream, ReservedType, Identifier, Punctuation, Reserved, Literal, OPERATORS
 from .errors import ParseError
 
 class Statement(ABC):
@@ -225,7 +225,7 @@ class Show(Statement):
     @classmethod
     def parse(cls, tokens: TokenStream):
         tokens.pop()
-        statement_tokens = tokens.pop_until(Punctuation, True)
+        statement_tokens = tokens.pop_until(PunctuationType.PERIOD, True)
         statements = statementize(statement_tokens)
         if not tokens.empty(): tokens.pop()
 
