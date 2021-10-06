@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import List
-from .tokens import OPERATOR_PRECEDENCE, Operator, PunctuationType, TokenStream, ReservedType, Identifier, Punctuation, Literal
+
+from kode.span import Span
+from .tokens import OPERATOR_PRECEDENCE, Operator, PunctuationType, Reserved, TokenStream, ReservedType, Identifier, Punctuation, Literal
 from .errors import ParseError
 
 class Statement(ABC):
@@ -18,6 +20,8 @@ class Statements(Statement):
     __statements: List[Statement]
 
     def __init__(self, statements: List[Statement]):
+        if len(statements) == 0: raise Exception("Emtpy Statements.") 
+
         self.__statements = statements
 
     @property
@@ -29,6 +33,9 @@ class Statements(Statement):
                 span = statement.span
             else:
                 span += statement.span
+
+        if span == None:
+            raise Exception("Statements without span.")
 
         return span
 
@@ -91,16 +98,18 @@ class IdentifierStatement(Statement):
         return f"IdentifierStatement({self.__identifier})"
 
 class Assignment(Statement):
+    __span: Span
     __identifier: Identifier
     __statements: Statements
 
-    def __init__(self, identifier: Identifier, statements: Statements):
+    def __init__(self, span: Span, identifier: Identifier, statements: Statements):
+        self.__span = span
         self.__identifier = identifier
         self.__statements = statements
 
     @property
     def span(self):
-        return self.__identifier.span + self.__statements.span
+        return self.__span + self.__identifier.span + self.__statements.span
 
     @property
     def statements(self) -> Statements:
@@ -116,14 +125,18 @@ class Assignment(Statement):
 
     @classmethod
     def parse(cls, tokens: TokenStream):
-        tokens.pop()
+        set_token = tokens.pop()
         identifier = tokens.pop()
-        tokens.pop()
+        to_token = tokens.pop()
         statement_tokens = tokens.pop_until(Punctuation, True)
         statements = statementize(statement_tokens)
         if not tokens.empty(): tokens.pop()
 
-        return Assignment(identifier, statements)
+        return Assignment(
+            span=set_token.span + to_token.span, 
+            identifier=identifier, 
+            statements=statements
+        )
 
     def __str__(self) -> str:
         return f"Assignment({self.__identifier},{self.__statements})"
@@ -132,14 +145,16 @@ class Assignment(Statement):
         return self.__statements.__iter__()
 
 class Operation(Statement):
+    __span: Span
     __op_tree: any
 
-    def __init__(self, op_tree: any):
+    def __init__(self, span: Span, op_tree: any):
+        self.__span = span
         self.__op_tree = op_tree
 
     @property
     def span(self):
-        return None
+        return self.__span
 
     @property
     def op_tree(self):
@@ -178,10 +193,17 @@ class Operation(Statement):
 
     @classmethod
     def parse(cls, tokens: TokenStream):
+        span = None
         operation = []
-        
+
         while not tokens.empty():
-            operation.append(tokens.pop())
+            token = tokens.pop()
+            operation.append(token)
+
+            if span == None:
+                span = token.span
+            else:
+                span += token.span
 
         grouped_operation = []
 
@@ -199,23 +221,28 @@ class Operation(Statement):
 
         op_tree = cls.__dp_parse(grouped_operation)
 
-        return Operation(op_tree)
+        return Operation(
+            span=span,
+            op_tree=op_tree
+        )
 
     def __str__(self) -> str:
-        return f"Operation({self.__lhs}, {self.__operator}, {self.__rhs})"
+        return f"Operation({self.op_tree})"
 
     def __repr__(self) -> str:
         return str(self)
 
 class Show(Statement):
+    __span: Span
     __statements: Statements
 
-    def __init__(self, statements: Statements):
+    def __init__(self, span: Span, statements: Statements):
+        self.__span = span
         self.__statements = statements
 
     @property
     def span(self):
-        return self.__statements.span
+        return self.__span + self.__statements.span
 
     @property
     def statements(self) -> Statements:
@@ -227,12 +254,12 @@ class Show(Statement):
 
     @classmethod
     def parse(cls, tokens: TokenStream):
-        tokens.pop()
+        show = tokens.pop()
         statement_tokens = tokens.pop_until(PunctuationType.PERIOD, True)
         statements = statementize(statement_tokens)
         if not tokens.empty(): tokens.pop()
 
-        return Show(statements)
+        return Show(show.span, statements)
 
     def __str__(self) -> str:
         return f"Show({self.__statements})"

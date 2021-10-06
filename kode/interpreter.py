@@ -1,3 +1,4 @@
+from kode.utils import print_span
 from .statements import IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
 from .tokens import Literal, Operator, OperatorType, tokenize
 from .span import Span, spanize
@@ -99,8 +100,14 @@ class AssignmentInterpreter(StatementInterpreter):
 
         interpreter.scope.put(self._statement.identifier.value, literal.value)
 
-        # TODO: Add SET to span.
-        return literal
+        new_literal = Literal(Span(
+            value=literal.span.value,
+            file_path=literal.span.file_path,
+            start=min(literal.span.start, self._statement.span.start),
+            end=max(literal.span.end, self._statement.span.end)
+        ))
+
+        return new_literal
 
 class OperatorInterpreter(ABC):
     @classmethod
@@ -206,8 +213,14 @@ class ShowInterpreter(StatementInterpreter):
 
         interpreter.display(literal.value)
 
-        # TODO: Add SHOW to span.
-        return literal
+        new_literal = Literal(Span(
+            value=literal.span.value,
+            file_path=literal.span.file_path,
+            start=min(literal.span.start, self._statement.span.start),
+            end=max(literal.span.end, self._statement.span.end)
+        ))
+
+        return new_literal
 
 class LiteralInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
@@ -240,12 +253,14 @@ class Interpreter:
     __ast: Statements
     __stdout: str
     __silent: bool
+    __debug: bool
     __scope: Scope
 
-    def __init__(self, ast: Statements, silent: bool = False):
+    def __init__(self, ast: Statements, silent: bool = False, debug: bool = False):
         self.__ast = ast
         self.__stdout = ""
         self.__silent = silent
+        self.__debug = debug
         self.__scope = Scope()
 
     @property
@@ -268,8 +283,14 @@ class Interpreter:
             si = SI(ast)
 
             if si.can_interpret():
-                value = si.interpret(self)
-                return value
+                literal = si.interpret(self)
+
+                if self.__debug:
+                    print_span(literal.span)
+                    print("|", "Value:", literal.value)
+                    print("|")
+
+                return literal
 
         raise InterpreterError(ast.span, "Cannot interpret statement.")
 
@@ -283,9 +304,12 @@ def parse(source: str, file_path: str) -> Statements:
     except ParseError as err:
         handle_error(err)
 
-def interpret(ast: Statements) -> any:
+def interpret(ast: Statements, debug: bool = False) -> any:
     try:
-        interpeter = Interpreter(ast)
+        interpeter = Interpreter(
+            ast=ast,
+            debug=debug
+        )
         return interpeter.run()
     except InterpreterError as err:
         handle_error(err)

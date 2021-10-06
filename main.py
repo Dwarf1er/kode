@@ -4,6 +4,7 @@ from kode import parse, interpret
 def main():
     parser = argparse.ArgumentParser(description="Parser for Kode")
     parser.add_argument("--ast", action='store_true', help="Prints the AST representation of the code.")
+    parser.add_argument("--debug", action='store_true', help="Prints interpreter operations.")
     parser.add_argument("file", help="File to interpret.")
     args = parser.parse_args()
 
@@ -17,7 +18,10 @@ def main():
 
     if args.ast: print(AST)
 
-    result = interpret(AST)
+    result = interpret(
+        ast=AST, 
+        debug=args.debug
+    )
 
     if result == None: return
 
