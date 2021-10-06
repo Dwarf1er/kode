@@ -40,10 +40,23 @@ class Scope:
 
 class Interpreter:
     __ast: Statements
+    __stdout: str
+    __silent: bool
 
-    def __init__(self, ast: Statements):
+    def __init__(self, ast: Statements, silent: bool = False):
         self.__ast = ast
-    
+        self.__stdout = ""
+        self.__silent = silent
+
+    @property
+    def stdout(self) -> str:
+        return self.__stdout
+
+    def __print(self, line: str, terminator: str = "\n"):
+        self.__stdout += str(line) + terminator
+
+        if not self.__silent: print(line, end=terminator)
+
     def get_literal_value(self, literal: Literal) -> any:
         if literal.ltype == LiteralType.NUMBER:
             return int(literal.value)
@@ -103,19 +116,19 @@ class Interpreter:
         elif type(ast) == Show:
             value = self.run(ast.statements, scope)[-1]
 
-            print(value)
+            self.__print(value)
 
             return value
 
-def parse(source: str):
+def parse(source: str, file_path: str) -> Statements:
     try:
-        return statementize(tokenize(spanize(source)))
+        return statementize(tokenize(spanize(source, file_path)))
     except ParseError as err:
-        handle_error(err, source)
+        handle_error(err)
 
-def interpret(source: str, ast: Statements):
+def interpret(ast: Statements) -> any:
     try:
         interpeter = Interpreter(ast)
         return interpeter.run()[-1]
     except InterpreterError as err:
-        handle_error(err, source)
+        handle_error(err)

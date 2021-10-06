@@ -7,20 +7,19 @@ def main():
     parser.add_argument("file", help="File to interpret.")
     args = parser.parse_args()
 
+    file_path = args.file
     with open(args.file) as h:
         source = h.read()
 
-    AST = parse(source)
+    AST = parse(source, file_path)
 
     if AST == None: return
 
     if args.ast: print(AST)
 
-    result = interpret(source, AST)
+    result = interpret(AST)
 
     if result == None: return
-
-    print(result)
 
 if __name__ == "__main__":
     main()

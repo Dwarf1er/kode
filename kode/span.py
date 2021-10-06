@@ -3,10 +3,12 @@ from typing import List
 class Span:
     __offset: int
     __value: str
+    __file_path: str
 
-    def __init__(self, value: str, offset: int = 0):
+    def __init__(self, value: str, file_path: str, offset: int = 0):
         self.__offset = offset
         self.__value = value
+        self.__file_path = file_path
 
     @property
     def offset(self):
@@ -20,6 +22,10 @@ class Span:
     def value(self):
         return self.__value
 
+    @property
+    def file_path(self):
+        return self.__file_path
+
     def pop(self, size: int = 1) -> 'Span':
         if size < 0: raise Exception("Cannot pop negative value.")
         if size > len(self.__value): raise Exception(f"Trying to pop greater than size.")
@@ -28,7 +34,7 @@ class Span:
         self.__offset += size
         pop_value, self.__value = self.__value[:size], self.__value[size:]
 
-        return Span(pop_value, pop_offset)
+        return Span(pop_value, file_path=self.__file_path, offset=pop_offset)
 
     def __add__(self, other: 'Span'):
         if not type(other) == Span: raise Exception(f"Cannot add non-Span to Span.")
@@ -43,7 +49,7 @@ class Span:
         else:
             value = min_span.value[:max_span.offset] + max_span.value
 
-        return Span(value, min_span.offset)
+        return Span(value, file_path=self.__file_path, offset=min_span.offset)
 
     def __iter__(self):
         return self.__value.__iter__()
@@ -57,10 +63,10 @@ class Span:
     def __len__(self) -> int:
         return len(self.__value)
 
-def spanize(source: str) -> List[Span]:
+def spanize(source: str, file_path: str) -> List[Span]:
     from .tokens import PunctuationType
 
-    source = Span(source)
+    source = Span(source, file_path=file_path)
     spans = []
 
     i = 0

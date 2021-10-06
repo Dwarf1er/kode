@@ -1,4 +1,5 @@
 from .span import Span
+from typing import List
 
 class KodeError(Exception):
     span: Span
@@ -15,11 +16,15 @@ class InterpreterError(KodeError):
     def __init__(self, span: Span, message: str):
         super().__init__(span, message)
 
-def handle_error(error: KodeError, source: str):
+def handle_error(error: KodeError):
     spans = error.span
 
     if not type(spans) == list:
         spans = [spans]
+
+    file_path = spans[0].file_path 
+    with open(file_path) as h:
+        source = h.read()
 
     source_pointers = [False] * len(source)
 
@@ -37,7 +42,7 @@ def handle_error(error: KodeError, source: str):
         ptrs = source_pointers[start:end]
 
         if any(ptrs):
-            line_num = ("(%0"+ str((len(source_split) // 10) + 1) +"d)") % i
+            line_num = f"({file_path}:{i}:{ptrs.index(True) + 1})"
             print(f"| {line_num}", line.replace("\t", " "))
             print("|" + " " * (len(line_num) + 1), ''.join("^" if p else " " for p in ptrs))
 
