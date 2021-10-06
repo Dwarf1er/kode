@@ -16,22 +16,16 @@ class InterpreterError(KodeError):
         super().__init__(span, message)
 
 def handle_error(error: KodeError):
-    spans = error.span
+    span = error.span
 
-    if not type(spans) == list:
-        spans = [spans]
-
-    if len(spans) == 0: raise error
-
-    file_path = spans[0].file_path 
+    file_path = span.file_path 
     with open(file_path) as h:
         source = h.read()
 
     source_pointers = [False] * len(source)
 
-    for span in spans:
-        for i in range(span.offset, span.end):
-            source_pointers[i] = True
+    for i in range(span.start, span.end):
+        source_pointers[i] = True
 
     print(f"|\n| {error.__class__.__name__}:", error, "\n|")
 

@@ -1,5 +1,5 @@
 from .statements import IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
-from .tokens import ReservedType, tokenize
+from .tokens import OperatorType, tokenize
 from .span import spanize
 from .errors import ParseError, InterpreterError, handle_error
 from typing import Dict, List
@@ -85,20 +85,20 @@ class OperationInterpreter(StatementInterpreter):
         lhs = self.__dp_interpret(op_tree[0], interpreter)
         rhs = self.__dp_interpret(op_tree[2], interpreter)
 
-        operator: ReservedType = op_tree[1].rtype
+        operator: OperatorType = op_tree[1].enum_type
 
-        if operator == ReservedType.PLUS:
+        if operator == OperatorType.PLUS:
             return lhs + rhs
-        elif operator == ReservedType.MINUS:
+        elif operator == OperatorType.MINUS:
             return lhs - rhs
-        elif operator == ReservedType.TIMES:
+        elif operator == OperatorType.TIMES:
             return lhs * rhs
-        elif operator == ReservedType.DIVIDE:
+        elif operator == OperatorType.DIVIDE:
             # TODO: Check int and float?
             return lhs // rhs
-        elif operator == ReservedType.MOD:
+        elif operator == OperatorType.MOD:
             return lhs % rhs
-        elif operator == ReservedType.EQUALS:
+        elif operator == OperatorType.EQUALS:
             return lhs == rhs
         else:
             raise InterpreterError(self._statement.operator, "Unimplemented operator.")

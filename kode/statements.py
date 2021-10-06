@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import List
-from .tokens import OPERATOR_PRECEDENCE, PunctuationType, TokenStream, ReservedType, Identifier, Punctuation, Reserved, Literal, OPERATORS
+from .tokens import OPERATOR_PRECEDENCE, Operator, PunctuationType, TokenStream, ReservedType, Identifier, Punctuation, Literal
 from .errors import ParseError
 
 class Statement(ABC):
@@ -22,10 +22,13 @@ class Statements(Statement):
 
     @property
     def span(self):
-        span = []
+        span = None
 
         for statement in self.__statements:
-            span.append(statement.span)
+            if span == None:
+                span = statement.span
+            else:
+                span += statement.span
 
         return span
 
@@ -145,7 +148,7 @@ class Operation(Statement):
     @classmethod
     def istype(cls, tokens: TokenStream):
         while not tokens.empty():
-            tokens.nxt([Identifier, Literal] + OPERATORS)
+            tokens.nxt([Identifier, Literal, Operator])
 
     @classmethod
     def __dp_parse(cls, operation: any):
@@ -156,9 +159,9 @@ class Operation(Statement):
         min_precedence = float("inf")
 
         for i, value in enumerate(operation):
-            if not type(value) == Reserved: continue
+            if not type(value) == Operator: continue
 
-            precedence = OPERATOR_PRECEDENCE[value.rtype]
+            precedence = OPERATOR_PRECEDENCE[value.enum_type]
 
             if precedence <= min_precedence:
                 min_index = i
@@ -184,7 +187,7 @@ class Operation(Statement):
 
         group = []
         for token in operation:
-            if type(token) == Reserved and token.rtype in OPERATOR_PRECEDENCE:
+            if type(token) == Operator:
                 grouped_operation.append(statementize(TokenStream(group)))
                 grouped_operation.append(token)
                 group = []

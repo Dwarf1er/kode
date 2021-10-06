@@ -104,17 +104,17 @@ class Literal(Token):
                 else:
                     break
             for iter_span in spans[:i]:
-                span = span + iter_span
+                span += iter_span
 
             return Literal(span), i
 
         if span.value[0] in STRING_DELIMITERS:
             string_terminator = span.value[0]
 
-            for j, ns in enumerate(spans):
-                if ns.value.endswith(string_terminator):
-                    for nss in spans[:j+1]:
-                        span = span + nss
+            for j, iter_span in enumerate(spans):
+                if iter_span.value.endswith(string_terminator):
+                    for inner_span in spans[:j+1]:
+                        span += inner_span
                     return Literal(span), j+1
             else:
                 raise ParseError(span, f"String not closed.")
@@ -133,34 +133,11 @@ class ReservedType(Enum):
     TO = auto()
     THEN = auto()
     SET = auto()
-    PLUS = auto()
-    MINUS = auto()
     SHOW = auto()
-    TIMES = auto()
-    DIVIDE = auto()
-    MOD = auto()
-    EQUALS = auto()
-
-OPERATORS = [
-    ReservedType.PLUS, 
-    ReservedType.MINUS,
-    ReservedType.TIMES,
-    ReservedType.DIVIDE,
-    ReservedType.MOD,
-    ReservedType.EQUALS
-]
-OPERATOR_PRECEDENCE = {
-    ReservedType.MOD: 15,
-    ReservedType.TIMES: 15,
-    ReservedType.DIVIDE: 15,
-    ReservedType.PLUS: 14,
-    ReservedType.MINUS: 14,
-    ReservedType.EQUALS: 11
-}
 
 class Reserved(Token):
     @property
-    def rtype(self) -> ReservedType:
+    def enum_type(self) -> ReservedType:
         return ReservedType[self.value.upper()]
 
     @classmethod
@@ -169,10 +146,47 @@ class Reserved(Token):
 
     @classmethod
     def parse(cls, spans: List[Span]) -> Tuple['Reserved', int]:
-        return Reserved(spans[0]), 1
+        span = spans[0]
+
+        return Reserved(span), 1
 
     def __str__(self) -> str:
-        return f"Reserved({self.rtype})"
+        return f"Reserved({self.enum_type})"
+
+class OperatorType(Enum):
+    PLUS = auto()
+    MINUS = auto()
+    TIMES = auto()
+    DIVIDE = auto()
+    MOD = auto()
+    EQUALS = auto()
+
+OPERATOR_PRECEDENCE = {
+    OperatorType.MOD: 15,
+    OperatorType.TIMES: 15,
+    OperatorType.DIVIDE: 15,
+    OperatorType.PLUS: 14,
+    OperatorType.MINUS: 14,
+    OperatorType.EQUALS: 11
+}
+
+class Operator(Token):
+    @property
+    def enum_type(self) -> OperatorType:
+        return OperatorType[self.value.upper()]
+
+    @classmethod
+    def istype(cls, span: Span) -> bool:
+        return span.value.upper() in OperatorType._member_names_
+
+    @classmethod
+    def parse(cls, spans: List[Span]) -> Tuple['Operator', int]:
+        span = spans[0]
+
+        return Operator(span), 1
+
+    def __str__(self) -> str:
+        return f"Operator({self.enum_type})"
 
 class Identifier(Token):
     def __str__(self) -> str:
@@ -184,7 +198,9 @@ class Identifier(Token):
     
     @classmethod
     def parse(cls, spans: List[Span]) -> Tuple['Identifier', int]:
-        return Identifier(spans[0]), 1
+        span = spans[0]
+
+        return Identifier(span), 1
 
 class PunctuationType(Enum):
     PERIOD = "."
@@ -195,7 +211,7 @@ class Punctuation(Token):
         return f"Punctuation({self.value})"
 
     @property
-    def ptype(self) -> PunctuationType:
+    def enum_type(self) -> PunctuationType:
         return PunctuationType(self.value)
 
     @classmethod
@@ -207,10 +223,11 @@ class Punctuation(Token):
         return Punctuation(spans[0]), 1
 
 TOKEN_TYPES = [
-    Literal, 
-    Punctuation, 
-    Reserved, 
-    Literal, 
+    Literal,
+    Punctuation,
+    Operator,
+    Reserved,
+    Literal,
     Identifier
 ]
 
@@ -224,27 +241,34 @@ class TokenStream:
     
     @property
     def span(self) -> List[Span]:
-        return [token.span for token in self.__tokens[self.__ptr:]]
+        span = None
+
+        for token in self.__tokens[self.__ptr:]:
+            if span == None:
+                span = token.span
+            else:
+                span += token.span
+        
+        return span
 
     def cnxt(self, value_types: any = None) -> bool:
-        if self.__ptr >= len(self.__tokens): raise Exception("Peek out of bound.")
+        if self.__ptr >= len(self.__tokens): 
+            raise Exception("Peek out of bound.")
 
         if not type(value_types) == list:
             value_types = [value_types]
 
+        token = self.__tokens[self.__ptr]
+        token_type = type(token)
+
         for value_type in value_types:
             if value_type == None: return True
 
-            token = self.__tokens[self.__ptr]
-            token_type = type(token)
-            
-            if type(value_type) == PunctuationType and token_type == Punctuation:
-                if token.ptype == value_type: return True
-            if type(value_type) == ReservedType and token_type == Reserved:
-                if token.rtype == value_type: return True
-            elif type(value_type) == LiteralType and token_type == Literal:
-                if token.ltype == value_type: return True
-            elif value_type == token_type: return True
+            if issubclass(type(value_type), Enum):
+                if not hasattr(token, 'enum_type'): continue
+                if value_type == token.enum_type: return True
+            else:
+                if value_type == token_type: return True
         
         return False
 

@@ -1,22 +1,24 @@
 from typing import List
 
 class Span:
-    __offset: int
+    __start: int
+    __end: int
     __value: str
     __file_path: str
 
-    def __init__(self, value: str, file_path: str, offset: int = 0):
-        self.__offset = offset
+    def __init__(self, value: str, file_path: str, start: int, end: int):
         self.__value = value
         self.__file_path = file_path
+        self.__start = start
+        self.__end = end
 
     @property
-    def offset(self):
-        return self.__offset
+    def start(self):
+        return self.__start
 
     @property
     def end(self):
-        return self.__offset + len(self.__value)
+        return self.__end
 
     @property
     def value(self):
@@ -30,32 +32,46 @@ class Span:
         if size < 0: raise Exception("Cannot pop negative value.")
         if size > len(self.__value): raise Exception(f"Trying to pop greater than size.")
 
-        pop_offset = self.offset
-        self.__offset += size
+        pop_offset = self.__start
+        self.__start += size
         pop_value, self.__value = self.__value[:size], self.__value[size:]
 
-        return Span(pop_value, file_path=self.__file_path, offset=pop_offset)
+        return Span(
+            value=pop_value, 
+            file_path=self.__file_path,
+            start=pop_offset,
+            end=pop_offset + size
+        )
 
     def __add__(self, other: 'Span'):
         if not type(other) == Span: raise Exception(f"Cannot add non-Span to Span.")
 
-        min_span = self if self.offset < other.offset else other
-        max_span = self if not min_span == self else other
+        new_start = min(self.start, other.start)
+        new_end = max(self.end, other.end)
 
-        if min_span.end < max_span.offset - 1: raise Exception(f"{self} and {other} do not intersect.")
+        new_size = new_end - new_start
+        new_value = [" "] * new_size
 
-        if min_span.end >= max_span.end:
-            value = min_span.value
-        else:
-            value = min_span.value[:max_span.offset] + max_span.value
+        for i, c in enumerate(self.value, self.start - new_start):
+            new_value[i] = c
 
-        return Span(value, file_path=self.__file_path, offset=min_span.offset)
+        for i, c in enumerate(other.value, other.start - new_start):
+            new_value[i] = c
+        
+        value = "".join(new_value)
+
+        return Span(
+            value=value, 
+            file_path=self.__file_path,
+            start=new_start,
+            end=new_end    
+        )
 
     def __iter__(self):
         return self.__value.__iter__()
 
     def __str__(self) -> str:
-        return f"Span({self.value},{self.offset})"
+        return f"Span({self.value},{self.start}-{self.end})"
 
     def __repr__(self) -> str:
         return str(self)
@@ -66,7 +82,13 @@ class Span:
 def spanize(source: str, file_path: str) -> List[Span]:
     from .tokens import PunctuationType
 
-    source = Span(source, file_path=file_path)
+    source = Span(
+        value=source, 
+        file_path=file_path,
+        start=0,
+        end=len(source)
+    )
+
     spans = []
 
     i = 0
