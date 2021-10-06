@@ -21,8 +21,11 @@ def main():
             source = h.read()
 
         result_path = os.path.splitext(path)[0] + ".out"
-        with open(result_path) as h:
-            result = h.read()
+        try:
+            with open(result_path) as h:
+                result = h.read()
+        except Exception as err:
+            pass
 
         try:
             spans = spanize(source, path)
@@ -32,8 +35,9 @@ def main():
             interpreter.run()
 
             if args.new:
+                result = interpreter.stdout
                 with open(result_path, "w") as h:
-                    h.write(interpreter.stdout)
+                    h.write(result)
 
             if not interpreter.stdout == result: raise Exception(f"Test failed.")
             
