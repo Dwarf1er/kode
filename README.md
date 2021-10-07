@@ -21,5 +21,5 @@ sudo apt install python3
 You can interpret a file as follows:
 
 ```
-python3 main.py /path/to/file.kode
+python3 run.py /path/to/file.kode
 ```
