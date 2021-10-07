@@ -1,5 +1,5 @@
 from kode.utils import print_span
-from .statements import Conditional, IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
+from .statements import Conditional, IdentifierStatement, LiteralStatement, Loop, Statement, Statements, Assignment, Operation, Show, statementize
 from .tokens import Identifier, Literal, LiteralType, OperatorType, tokenize
 from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
@@ -247,15 +247,48 @@ class ConditionalInterpreter(StatementInterpreter):
             new_span = self._statement.span
             new_span.value = "None"
 
+            interpreter.scope.pop()
+
             return Literal(new_span)
 
         interpreter.scope.pop()
         
         return return_literal + self._statement.span
 
+class LoopInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Loop
+
+    def interpret(self, interpreter: 'Interpreter'):
+        interpreter.scope.push()
+
+        last_value = None
+        
+        while True:
+            literal = interpreter.run(self._statement.condition)
+            
+            if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Loop with a non-boolean.")
+
+            if literal.value == False: break
+
+            last_value = interpreter.run(self._statement.statement)
+
+        if last_value == None:
+            new_span = self._statement.span
+            new_span.value = "None"
+
+            interpreter.scope.pop()
+
+            return Literal(new_span)
+
+        interpreter.scope.pop()
+
+        return last_value + self._statement.span
+
 STATEMENT_INTERPRETERS = [
     StatementsInterpreter,
     ConditionalInterpreter,
+    LoopInterpreter,
     AssignmentInterpreter, 
     OperationInterpreter, 
     ShowInterpreter,

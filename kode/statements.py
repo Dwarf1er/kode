@@ -342,7 +342,7 @@ class Conditional(Statement):
             else:
                 pass_body += tokens.pop()
         else:
-            raise ParseError(if_token.span, "Unable to parse if statement.")
+            raise ParseError(if_token.span, "Unable to parse conditional statement.")
 
         span = if_token.span + then_token.span + end_token.span
 
@@ -364,10 +364,77 @@ class Conditional(Statement):
             fail_statement=fail_statement
         )
 
+class Loop(Statement):
+    __span: Span
+    __condition: Statement
+    __statement: Statement
+
+    def __init__(self, span: Span, condition: Statement, statement: Statement):
+        self.__span = span
+        self.__condition = condition
+        self.__statement = statement
+    
+    @property
+    def span(self):
+        return self.__span + self.__condition.span + self.__statement.span
+
+    @property
+    def condition(self):
+        return self.__condition
+
+    @property
+    def statement(self):
+        return self.__statement
+
+    def __str__(self) -> str:
+        return f"Loop({self.__condition}, {self.__statement})"
+
+    @classmethod
+    def istype(cls, tokens: TokenStream):
+        tokens.nxt(ReservedType.WHILE)
+
+    @classmethod
+    def parse(cls, tokens: TokenStream):
+        while_token = tokens.pop()
+        condition_body = tokens.pop_until(ReservedType.DO)
+        do_token = tokens.pop()
+
+        body = TokenStream()
+        end_token = None
+
+        end_count = 1
+        while not tokens.empty():
+            for ebr in END_BOUNDED_RESERVES:
+                if tokens.cnxt(ebr):
+                    end_count += 1
+                    break
+
+            if tokens.cnxt(ReservedType.END):
+                end_count -= 1
+
+                if end_count == 0:
+                    end_token = tokens.pop()
+                    break
+            
+            body += tokens.pop()
+        else:
+            raise ParseError(while_token.span, "Unable to parse loop statement.")
+
+        span = while_token.span + do_token.span + end_token.span
+        condition = statementize(condition_body)
+        statement = statementize(body)
+
+        return Loop(
+            span=span,
+            condition=condition,
+            statement=statement
+        )
+
 STATEMENT_TYPES = [
     LiteralStatement, 
     IdentifierStatement,
     Conditional,
+    Loop,
     Show,
     Assignment,
     Operation,

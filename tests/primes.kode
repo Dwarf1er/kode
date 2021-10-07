@@ -1,0 +1,31 @@
+SET MAX TO 100.
+
+SHOW 1.
+SHOW 2.
+
+SET X TO 3.
+SET F1 TO TRUE.
+
+WHILE F1 DO
+    SET Y TO 2.
+    SET F2 TO TRUE.
+
+    WHILE F2 DO
+        IF Y EQUALS X THEN
+            SHOW X.
+            SET F2 TO FALSE.
+        END
+
+        IF X MOD Y EQUALS 0 THEN
+            SET F2 TO FALSE.
+        END
+
+        SET Y TO Y PLUS 1.
+    END
+
+    IF X EQUALS MAX THEN
+        SET F1 TO FALSE.
+    END
+
+    SET X TO X PLUS 1.
+END

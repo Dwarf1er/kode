@@ -1,8 +1,23 @@
 SET X TO 1.
-WHILE NOT X EQUALS 5 DO
+SET F1 TO TRUE.
+WHILE F1 DO
     SET Y TO 1.
-    WHILE NOT Y EQUALS 5 DO
+    SET F2 TO TRUE.
+
+    WHILE F2 DO
         SHOW X.
         SHOW Y.
+
+        SET Y TO Y PLUS 1.
+
+        IF Y EQUALS 5 THEN
+            SET F2 TO FALSE.
+        END
+    END
+
+    SET X TO X PLUS 1.
+
+    IF X EQUALS 5 THEN
+        SET F1 TO FALSE.
     END
 END

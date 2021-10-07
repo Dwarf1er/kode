@@ -152,12 +152,16 @@ class ReservedType(Enum):
     IF = auto()
     THEN = auto()
     ELSE = auto()
+
+    WHILE = auto()
+    DO = auto()
+
     END = auto()
     SET = auto()
     TO = auto()
     SHOW = auto()
 
-END_BOUNDED_RESERVES = [ReservedType.IF]
+END_BOUNDED_RESERVES = [ReservedType.IF, ReservedType.WHILE]
 
 class Reserved(Token):
     @property
