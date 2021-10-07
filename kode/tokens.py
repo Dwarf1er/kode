@@ -188,6 +188,10 @@ class OperatorType(Enum):
     DIVIDE = auto()
     MOD = auto()
     EQUALS = auto()
+    GREATER = auto()
+    LESS = auto()
+    AND = auto()
+    OR = auto()
 
 OPERATOR_PRECEDENCE = {
     OperatorType.MOD: 15,
@@ -195,7 +199,11 @@ OPERATOR_PRECEDENCE = {
     OperatorType.DIVIDE: 15,
     OperatorType.PLUS: 14,
     OperatorType.MINUS: 14,
-    OperatorType.EQUALS: 11
+    OperatorType.EQUALS: 11,
+    OperatorType.GREATER: 12,
+    OperatorType.LESS: 12,
+    OperatorType.AND: 7,
+    OperatorType.OR: 6
 }
 
 class Operator(Token):
@@ -205,13 +213,26 @@ class Operator(Token):
 
     @classmethod
     def istype(cls, span: Span) -> bool:
-        return span.value.upper() in OperatorType._member_names_
+        if span.value.upper() in OperatorType._member_names_: return True
+
+        return False
 
     @classmethod
     def parse(cls, spans: List[Span]) -> Tuple['Operator', int]:
         span = spans[0]
+        i = 0
 
-        return Operator(span), 1
+        if span.value.upper() in ["GREATER", "LESS"]:
+            if not spans[1].value.isspace(): raise ParseError(spans[1], "Expected whitespace.")
+            if not spans[2].value.upper() == "THAN": raise ParseError(spans[2], "Expected THAN.")
+
+            new_span = span + spans[1] + spans[2]
+            new_span.value = span.value
+            span = new_span 
+
+            i += 2
+
+        return Operator(span), i + 1
 
     def __str__(self) -> str:
         return f"Operator({self.enum_type})"

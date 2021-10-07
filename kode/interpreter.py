@@ -167,13 +167,53 @@ class EqualsInterpreter(OperatorInterpreter):
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
         return lhs.value == rhs.value 
 
+class GreaterInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.GREATER
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value > rhs.value
+
+class LessInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.LESS
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value < rhs.value
+
+class AndInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.AND
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value and rhs.value
+
+class OrInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.OR
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value or rhs.value
+
 OPERATOR_INTERPRETERS = [
     PlusInterpreter,
     MinusInterpreter,
     TimesInterpreter,
     DivideInterpreter,
     ModInterpreter,
-    EqualsInterpreter
+    EqualsInterpreter,
+    GreaterInterpreter,
+    LessInterpreter,
+    AndInterpreter,
+    OrInterpreter
 ]
 
 class OperationInterpreter(StatementInterpreter):
@@ -194,7 +234,7 @@ class OperationInterpreter(StatementInterpreter):
 
                 return get_literal(value, spanned_objects=[lhs, rhs])
         else:
-            raise InterpreterError(self._statement.operator, "Unimplemented operator.")
+            raise InterpreterError(op_tree[1].span, "Unimplemented operator.")
 
     def interpret(self, interpreter: 'Interpreter') -> Literal:
         return self.__dp_interpret(self._statement.op_tree, interpreter)
@@ -266,7 +306,7 @@ class LoopInterpreter(StatementInterpreter):
         
         while True:
             literal = interpreter.run(self._statement.condition)
-            
+
             if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Loop with a non-boolean.")
 
             if literal.value == False: break
