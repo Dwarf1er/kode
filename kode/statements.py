@@ -145,23 +145,33 @@ class Assignment(Statement):
         )
 
 class Operation(Statement):
-    __span: Span
-    __op_tree: any
+    __lhs: Statement
+    __operator: Operator
+    __rhs: Statement
 
-    def __init__(self, span: Span, op_tree: any):
-        self.__span = span
-        self.__op_tree = op_tree
+    def __init__(self, lhs: Statement, operator: Operator, rhs: Statement):
+        self.__lhs = lhs
+        self.__operator = operator
+        self.__rhs = rhs
 
     @property
     def span(self):
-        return self.__span
+        return self.__lhs.span + self.__operator.span + self.__rhs.span
 
     @property
-    def op_tree(self):
-        return self.__op_tree
+    def lhs(self):
+        return self.__lhs
+
+    @property
+    def operator(self):
+        return self.__operator
+
+    @property
+    def rhs(self):
+        return self.__rhs
 
     def __str__(self) -> str:
-        return f"Operation({self.op_tree})"
+        return f"Operation({self.__lhs},{self.__operator},{self.__rhs})"
 
     @classmethod
     def istype(cls, tokens: TokenStream):
@@ -169,9 +179,12 @@ class Operation(Statement):
             tokens.nxt([Identifier, Literal, Operator])
 
     @classmethod
-    def __dp_parse(cls, operation: any):
-        if len(operation) == 0: raise Exception("Invalid empty operand.")
-        if len(operation) == 1: return operation[0]
+    def parse(cls, tokens: TokenStream):
+        operation = []
+
+        while not tokens.empty():
+            token = tokens.pop()
+            operation.append(token)
 
         min_index = None
         min_precedence = float("inf")
@@ -185,48 +198,14 @@ class Operation(Statement):
                 min_index = i
                 min_precedence = precedence
 
-        lhs = operation[:min_index]
+        lhs = statementize(TokenStream(operation[:min_index]))
         operator = operation[min_index]
-        rhs = operation[min_index + 1:]
-
-        lhs = cls.__dp_parse(lhs)
-        rhs = cls.__dp_parse(rhs)
-
-        return (lhs, operator, rhs)
-
-    @classmethod
-    def parse(cls, tokens: TokenStream):
-        span = None
-        operation = []
-
-        while not tokens.empty():
-            token = tokens.pop()
-            operation.append(token)
-
-            if span == None:
-                span = token.span
-            else:
-                span += token.span
-
-        grouped_operation = []
-
-        group = []
-        for token in operation:
-            if type(token) == Operator:
-                grouped_operation.append(statementize(TokenStream(group)))
-                grouped_operation.append(token)
-                group = []
-            else:
-                group.append(token)
-
-        if len(group) > 0:
-            grouped_operation.append(statementize(TokenStream(group)))
-
-        op_tree = cls.__dp_parse(grouped_operation)
+        rhs = statementize(TokenStream(operation[min_index+1:]))
 
         return Operation(
-            span=span,
-            op_tree=op_tree
+            lhs=lhs,
+            operator=operator,
+            rhs=rhs
         )
 
 class Show(Statement):
@@ -482,5 +461,8 @@ def statementize(tokens: TokenStream) -> Statements:
                 raise err
         else:
             raise ParseError(span=tokens.span, message=f"Could not match any statement to tokens.")
-
-    return Statements(statements)
+    
+    if len(statements) == 1:
+        return statements[0]
+    else:
+        return Statements(statements)

@@ -286,13 +286,11 @@ class OperationInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == Operation
 
-    def __dp_interpret(self, op_tree: any, interpreter: 'Interpreter') -> Literal:
-        if type(op_tree) == Statements: return interpreter.run(op_tree)
+    def interpret(self, interpreter: 'Interpreter') -> Literal:
+        lhs = interpreter.run(self._statement.lhs)
+        rhs = interpreter.run(self._statement.rhs)
 
-        lhs = self.__dp_interpret(op_tree[0], interpreter)
-        rhs = self.__dp_interpret(op_tree[2], interpreter)
-
-        operator: OperatorType = op_tree[1].enum_type
+        operator: OperatorType = self._statement.operator.enum_type
 
         for OP in OPERATOR_INTERPRETERS:
             if OP.can_interpret(operator):
@@ -301,9 +299,6 @@ class OperationInterpreter(StatementInterpreter):
                 return get_literal(value, spanned_objects=[lhs, rhs])
         else:
             raise InterpreterError(op_tree[1].span, f"Unimplemented operator {operator}.")
-
-    def interpret(self, interpreter: 'Interpreter') -> Literal:
-        return self.__dp_interpret(self._statement.op_tree, interpreter)
 
 class ShowInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
