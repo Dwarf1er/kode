@@ -198,6 +198,7 @@ class OperatorType(Enum):
     BOR = auto()
     SHL = auto() 
     SHR = auto()
+    INDEX = auto()
 
 OPERATOR_PRECEDENCE = {
     OperatorType.MOD: 15,
@@ -214,7 +215,8 @@ OPERATOR_PRECEDENCE = {
     OperatorType.BAND: 10,
     OperatorType.BOR: 8,
     OperatorType.SHL: 13,
-    OperatorType.SHR: 13
+    OperatorType.SHR: 13,
+    OperatorType.INDEX: 20
 }
 
 class Operator(Token):

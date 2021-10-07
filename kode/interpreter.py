@@ -56,7 +56,7 @@ class Scope:
         self.__values[key.value] = value
 
     def get(self, key: Identifier) -> any:
-        if not key.value in self.__values: raise InterpreterError(key.span, "Variable not defined.")
+        if not key.value in self.__values: raise InterpreterError(key.span, f"Variable {key.value} not defined.")
 
         return self.__values[key.value]
 
@@ -248,6 +248,21 @@ class ShrInterpreter(OperatorInterpreter):
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
         return lhs.value >> rhs.value
 
+class IndexInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.INDEX
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        if not lhs.enum_type in [LiteralType.STRING]:
+            raise InterpreterError(lhs.span, f"Cannot index {lhs.enum_type}.")
+
+        if not rhs.enum_type in [LiteralType.INTEGER]:
+            raise InterpreterError(rhs.span, f"Cannot index with {rhs.enum_type}.")
+
+        return lhs.value[rhs.value]
+
 OPERATOR_INTERPRETERS = [
     PlusInterpreter,
     MinusInterpreter,
@@ -263,7 +278,8 @@ OPERATOR_INTERPRETERS = [
     BorInterpreter,
     XorInterpreter,
     ShlInterpreter,
-    ShrInterpreter
+    ShrInterpreter,
+    IndexInterpreter
 ]
 
 class OperationInterpreter(StatementInterpreter):
@@ -284,7 +300,7 @@ class OperationInterpreter(StatementInterpreter):
 
                 return get_literal(value, spanned_objects=[lhs, rhs])
         else:
-            raise InterpreterError(op_tree[1].span, "Unimplemented operator.")
+            raise InterpreterError(op_tree[1].span, f"Unimplemented operator {operator}.")
 
     def interpret(self, interpreter: 'Interpreter') -> Literal:
         return self.__dp_interpret(self._statement.op_tree, interpreter)
@@ -342,7 +358,7 @@ class ConditionalInterpreter(StatementInterpreter):
 
         literal = interpreter.run(self._statement.condition)
 
-        if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Conditional with a non-boolean.")
+        if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, f"Cannot perform conditional with {literal.enum_type}.")
 
         if literal.value:
             return_literal = interpreter.run(self._statement.pass_statement)
@@ -372,7 +388,7 @@ class LoopInterpreter(StatementInterpreter):
         while True:
             literal = interpreter.run(self._statement.condition)
 
-            if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Loop with a non-boolean.")
+            if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, f"Cannot perform loop conditional with {literal.enum_type}.")
 
             if literal.value == False: break
 
