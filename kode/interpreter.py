@@ -1,6 +1,6 @@
 from kode.utils import print_span
 from .statements import Conditional, IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
-from .tokens import Literal, LiteralType, Operator, OperatorType, tokenize
+from .tokens import Identifier, Literal, LiteralType, OperatorType, tokenize
 from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
 from typing import Dict, List
@@ -49,14 +49,16 @@ class Scope:
         for key in old_keys:
             del self.__values[key]
 
-    def put(self, key: str, value: any):
-        if not key in self.__values:
-            self.__depths[-1].append(key)
+    def put(self, key: Identifier, value: any):
+        if not key.value in self.__values:
+            self.__depths[-1].append(key.value)
 
-        self.__values[key] = value
+        self.__values[key.value] = value
 
-    def get(self, key: str) -> any:
-        return self.__values[key]
+    def get(self, key: Identifier) -> any:
+        if not key.value in self.__values: raise InterpreterError(key.span, "Variable not defined.")
+
+        return self.__values[key.value]
 
     def __repr__(self) -> str:
         return str(self)
@@ -98,7 +100,7 @@ class AssignmentInterpreter(StatementInterpreter):
     def interpret(self, interpreter: 'Interpreter'):
         literal = interpreter.run(self._statement.statements)
 
-        interpreter.scope.put(self._statement.identifier.value, literal.value)
+        interpreter.scope.put(self._statement.identifier, literal.value)
 
         return literal + self._statement.span
 
@@ -222,7 +224,7 @@ class IdentifierInterpreter(StatementInterpreter):
         return type(self._statement) == IdentifierStatement
 
     def interpret(self, interpreter: 'Interpreter'):
-        value = interpreter.scope.get(self._statement.identifier.value)
+        value = interpreter.scope.get(self._statement.identifier)
 
         return get_literal(value, spanned_objects=[self._statement])
 
@@ -231,6 +233,8 @@ class ConditionalInterpreter(StatementInterpreter):
         return type(self._statement) == Conditional
 
     def interpret(self, interpreter: 'Interpreter'):
+        interpreter.scope.push()
+
         literal = interpreter.run(self._statement.condition)
 
         if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Conditional with a non-boolean.")
@@ -244,6 +248,8 @@ class ConditionalInterpreter(StatementInterpreter):
             new_span.value = "None"
 
             return Literal(new_span)
+
+        interpreter.scope.pop()
         
         return return_literal + self._statement.span
 
