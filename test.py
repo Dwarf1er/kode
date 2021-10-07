@@ -5,7 +5,7 @@ import os.path
 import time
 
 def main():
-    parser = argparse.ArgumentParser(description="UnitTest for Kode")
+    parser = argparse.ArgumentParser(description="UnitTest Kode")
     parser.add_argument("--new", "-n", action='store_true', help="Added or resets unit test values.")
     args = parser.parse_args()
 

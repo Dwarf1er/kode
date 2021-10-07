@@ -2,7 +2,7 @@ import argparse
 from kode import parse, interpret
 
 def main():
-    parser = argparse.ArgumentParser(description="Parser for Kode")
+    parser = argparse.ArgumentParser(description="Run Kode")
     parser.add_argument("--ast", action='store_true', help="Prints the AST representation of the code.")
     parser.add_argument("--debug", action='store_true', help="Prints interpreter operations.")
     parser.add_argument("file", help="File to interpret.")
