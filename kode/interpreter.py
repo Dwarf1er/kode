@@ -1,6 +1,6 @@
 from kode.utils import print_span
-from .statements import IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
-from .tokens import Literal, Operator, OperatorType, tokenize
+from .statements import Conditional, IdentifierStatement, LiteralStatement, Statement, Statements, Assignment, Operation, Show, statementize
+from .tokens import Literal, LiteralType, Operator, OperatorType, tokenize
 from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
 from typing import Dict, List
@@ -100,14 +100,7 @@ class AssignmentInterpreter(StatementInterpreter):
 
         interpreter.scope.put(self._statement.identifier.value, literal.value)
 
-        new_literal = Literal(Span(
-            value=literal.span.value,
-            file_path=literal.span.file_path,
-            start=min(literal.span.start, self._statement.span.start),
-            end=max(literal.span.end, self._statement.span.end)
-        ))
-
-        return new_literal
+        return literal + self._statement.span
 
 class OperatorInterpreter(ABC):
     @classmethod
@@ -213,14 +206,7 @@ class ShowInterpreter(StatementInterpreter):
 
         interpreter.display(literal.value)
 
-        new_literal = Literal(Span(
-            value=literal.span.value,
-            file_path=literal.span.file_path,
-            start=min(literal.span.start, self._statement.span.start),
-            end=max(literal.span.end, self._statement.span.end)
-        ))
-
-        return new_literal
+        return literal + self._statement.span
 
 class LiteralInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
@@ -240,8 +226,30 @@ class IdentifierInterpreter(StatementInterpreter):
 
         return get_literal(value, spanned_objects=[self._statement])
 
+class ConditionalInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Conditional
+
+    def interpret(self, interpreter: 'Interpreter'):
+        literal = interpreter.run(self._statement.condition)
+
+        if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, "Conditional with a non-boolean.")
+
+        if literal.value:
+            return_literal = interpreter.run(self._statement.pass_statement)
+        elif self._statement.fail_statement:
+            return_literal = interpreter.run(self._statement.fail_statement)
+        else:
+            new_span = self._statement.span
+            new_span.value = "None"
+
+            return Literal(new_span)
+        
+        return return_literal + self._statement.span
+
 STATEMENT_INTERPRETERS = [
-    StatementsInterpreter, 
+    StatementsInterpreter,
+    ConditionalInterpreter,
     AssignmentInterpreter, 
     OperationInterpreter, 
     ShowInterpreter,

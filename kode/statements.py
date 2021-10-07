@@ -2,7 +2,7 @@ from abc import ABC
 from typing import List
 
 from kode.span import Span
-from .tokens import OPERATOR_PRECEDENCE, Operator, PunctuationType, Reserved, TokenStream, ReservedType, Identifier, Punctuation, Literal
+from .tokens import END_BOUNDED_RESERVES, OPERATOR_PRECEDENCE, Operator, PunctuationType, Token, TokenStream, ReservedType, Identifier, Punctuation, Literal
 from .errors import ParseError
 
 class Statement(ABC):
@@ -59,6 +59,9 @@ class LiteralStatement(Statement):
     def literal(self):
         return self.__literal
 
+    def __str__(self) -> str:
+        return f"LiteralStatement({self.__literal})"
+
     @classmethod
     def istype(cls, tokens: TokenStream):
         if len(tokens) != 1: raise RuntimeWarning("Not single literal.")
@@ -67,9 +70,6 @@ class LiteralStatement(Statement):
     @classmethod
     def parse(cls, tokens: TokenStream):
         return LiteralStatement(tokens.pop())
-
-    def __str__(self) -> str:
-        return f"LiteralStatement({self.__literal})"
 
 class IdentifierStatement(Statement):
     __identifier: Identifier
@@ -85,6 +85,9 @@ class IdentifierStatement(Statement):
     def identifier(self):
         return self.__identifier
 
+    def __str__(self) -> str:
+        return f"IdentifierStatement({self.__identifier})"
+
     @classmethod
     def istype(cls, tokens: TokenStream):
         if len(tokens) != 1: raise RuntimeWarning("Not single identifier.")
@@ -93,9 +96,6 @@ class IdentifierStatement(Statement):
     @classmethod
     def parse(cls, tokens: TokenStream):
         return IdentifierStatement(tokens.pop())
-
-    def __str__(self) -> str:
-        return f"IdentifierStatement({self.__identifier})"
 
 class Assignment(Statement):
     __span: Span
@@ -119,6 +119,12 @@ class Assignment(Statement):
     def identifier(self) -> Identifier:
         return self.__identifier
 
+    def __str__(self) -> str:
+        return f"Assignment({self.__identifier},{self.__statements})"
+
+    def __iter__(self):
+        return self.__statements.__iter__()
+
     @classmethod
     def istype(cls, tokens: TokenStream):
         tokens.nxt(ReservedType.SET).nxt(Identifier).nxt(ReservedType.TO)
@@ -138,12 +144,6 @@ class Assignment(Statement):
             statements=statements
         )
 
-    def __str__(self) -> str:
-        return f"Assignment({self.__identifier},{self.__statements})"
-
-    def __iter__(self):
-        return self.__statements.__iter__()
-
 class Operation(Statement):
     __span: Span
     __op_tree: any
@@ -159,6 +159,9 @@ class Operation(Statement):
     @property
     def op_tree(self):
         return self.__op_tree
+
+    def __str__(self) -> str:
+        return f"Operation({self.op_tree})"
 
     @classmethod
     def istype(cls, tokens: TokenStream):
@@ -226,12 +229,6 @@ class Operation(Statement):
             op_tree=op_tree
         )
 
-    def __str__(self) -> str:
-        return f"Operation({self.op_tree})"
-
-    def __repr__(self) -> str:
-        return str(self)
-
 class Show(Statement):
     __span: Span
     __statements: Statements
@@ -243,6 +240,12 @@ class Show(Statement):
     @property
     def span(self):
         return self.__span + self.__statements.span
+
+    def __str__(self) -> str:
+        return f"Show({self.__statements})"
+
+    def __iter__(self):
+        return self.__statements.__iter__()
 
     @property
     def statements(self) -> Statements:
@@ -261,18 +264,110 @@ class Show(Statement):
 
         return Show(show.span, statements)
 
+class Conditional(Statement):
+    __span: Span
+    __condition: Statement
+    __pass_statement: Statement
+    __fail_statement: Statement
+
+    def __init__(self, span: Span, condition: Statement, pass_statement: Statement, fail_statement: Statement):
+        self.__span = span
+        self.__condition = condition
+        self.__pass_statement = pass_statement
+        self.__fail_statement = fail_statement
+
+    @property
+    def span(self):
+        span = self.__span + self.__condition.span + self.__pass_statement.span
+
+        if self.__fail_statement:
+            span += self.__fail_statement.span
+
+        return span
+
+    @property
+    def condition(self):
+        return self.__condition
+
+    @property
+    def pass_statement(self):
+        return self.__pass_statement
+
+    @property
+    def fail_statement(self):
+        return self.__fail_statement
+
     def __str__(self) -> str:
-        return f"Show({self.__statements})"
+        return f"Conditional({self.__condition}, {self.__pass_statement}, {self.__fail_statement})"
 
-    def __repr__(self) -> str:
-        return str(self)
+    @classmethod
+    def istype(cls, tokens: TokenStream):
+        tokens.nxt(ReservedType.IF)
 
-    def __iter__(self):
-        return self.__statements.__iter__()
+    @classmethod
+    def parse(cls, tokens: TokenStream):
+        if_token = tokens.pop()
+        condition_body = tokens.pop_until(ReservedType.THEN)
+        then_token = tokens.pop()
+
+        pass_body = TokenStream()
+        fail_body = TokenStream()
+
+        else_token = None
+        end_token = None
+
+        end_count = 1
+        while not tokens.empty():
+            for ebr in END_BOUNDED_RESERVES:
+                if tokens.cnxt(ebr):
+                    end_count += 1
+                    break
+
+            if tokens.cnxt(ReservedType.END):
+                end_count -= 1
+
+                if end_count == 0:
+                    end_token = tokens.pop()
+                    break
+
+            if end_count == 1 and tokens.cnxt(ReservedType.ELSE):
+                if else_token:
+                    raise ParseError(tokens.peek().span, "Too many else.")
+                else:
+                    else_token = tokens.pop()
+                    continue
+
+            if else_token:
+                fail_body += tokens.pop()
+            else:
+                pass_body += tokens.pop()
+        else:
+            raise ParseError(if_token.span, "Unable to parse if statement.")
+
+        span = if_token.span + then_token.span + end_token.span
+
+        if else_token:
+            span += else_token.span
+
+        condition = statementize(condition_body)
+        pass_statement = statementize(pass_body)
+
+        if fail_body:
+            fail_statement = statementize(fail_body)
+        else:
+            fail_statement = None
+
+        return Conditional(
+            span=span,
+            condition=condition,
+            pass_statement=pass_statement,
+            fail_statement=fail_statement
+        )
 
 STATEMENT_TYPES = [
     LiteralStatement, 
     IdentifierStatement,
+    Conditional,
     Show,
     Assignment,
     Operation,

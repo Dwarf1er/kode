@@ -20,6 +20,7 @@ def main():
         with open(path) as h:
             source = h.read()
 
+        result = None
         result_path = os.path.splitext(path)[0] + ".out"
         try:
             with open(result_path) as h:

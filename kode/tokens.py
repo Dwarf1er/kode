@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum, auto
-from typing import Tuple, List
+from typing import Tuple, List, Union
 import re
 from .span import Span
 from .errors import ParseError
@@ -29,6 +29,7 @@ class LiteralType(Enum):
     INTEGER = auto()
     BOOLEAN = auto()
     FLOAT = auto()
+    NONE = auto()
 
 def isfloat(value: str):
   try:
@@ -46,20 +47,23 @@ def isint(value: str):
 class Literal(Token):
     @property
     def value(self) -> any:
-        ltype = self.ltype
-        if ltype == LiteralType.STRING:
+        enum_type = self.enum_type
+
+        if enum_type == LiteralType.STRING:
             return self.span.value[1:-1]
-        elif ltype == LiteralType.INTEGER:
+        elif enum_type == LiteralType.INTEGER:
             return int(self.span.value)
-        elif ltype == LiteralType.FLOAT:
+        elif enum_type == LiteralType.FLOAT:
             return float(self.span.value)
-        elif ltype == LiteralType.BOOLEAN:
+        elif enum_type == LiteralType.BOOLEAN:
             return self.span.value.upper() == "TRUE"
+        elif enum_type == LiteralType.NONE:
+            return None
         else:
             raise Exception("Unimplemented literal type.")
 
     @property
-    def ltype(self) -> LiteralType:
+    def enum_type(self) -> LiteralType:
         value = self.span.value
 
         if value[0] in STRING_DELIMITERS:
@@ -70,6 +74,8 @@ class Literal(Token):
             return LiteralType.FLOAT
         elif value.upper() in ["TRUE", "FALSE"]:
             return LiteralType.BOOLEAN
+        elif value.upper() == "NONE":
+            return LiteralType.NONE
         else:
             raise ParseError(self.span, f"Invalid literal type.")
 
@@ -80,6 +86,7 @@ class Literal(Token):
         if value[0] in STRING_DELIMITERS: return True
         if value == "-" or value.isdigit(): return True
         if value.upper() in ["TRUE", "FALSE"]: return True
+        if value.upper() == "NONE": return True
 
         return False
     
@@ -119,24 +126,38 @@ class Literal(Token):
             else:
                 raise ParseError(span, f"String not closed.")
 
-        if span.value.upper() in ["TRUE", "FALSE"]:
+        if span.value.upper() in ["TRUE", "FALSE", "NONE"]:
             return Literal(span), 1
 
         raise ParseError(span, "Unknown literal type.")
 
+    def __add__(self, other: Union[Span]) -> 'Literal':
+        if type(other) == Span:
+            return Literal(Span(
+                value=self._span.value,
+                file_path=self._span.file_path,
+                start=min(self._span.start, other.start),
+                end=max(self._span.end, other.end)
+            ))
+        else:
+            raise Exception(f"Cannot add `{type(other)}` to Literal.")
+
     def __str__(self) -> str:
         try:
-            return f"Literal({self.value},{self.ltype})"
+            return f"Literal({self.value},{self.enum_type})"
         except:
             return f"Literal({self.span.value},ERROR)"
 
 class ReservedType(Enum):
     IF = auto()
-    IS = auto()
-    TO = auto()
     THEN = auto()
+    ELSE = auto()
+    END = auto()
     SET = auto()
+    TO = auto()
     SHOW = auto()
+
+END_BOUNDED_RESERVES = [ReservedType.IF]
 
 class Reserved(Token):
     @property
@@ -238,8 +259,11 @@ class TokenStream:
     __tokens: List[Token]
     __ptr: int
 
-    def __init__(self, tokens: List[Token], offset: int = 0):
-        self.__tokens = tokens
+    def __init__(self, tokens: List[Token] = None, offset: int = 0):
+        if tokens == None:
+            self.__tokens = []
+        else:
+            self.__tokens = tokens
         self.__ptr = offset
     
     @property
@@ -310,6 +334,14 @@ class TokenStream:
 
     def reset(self):
         self.__ptr = 0
+
+    def __add__(self, other: Union[Token, 'TokenStream']) -> 'TokenStream':
+        if issubclass(type(other), Token):
+            return TokenStream(self.__tokens + [other], self.__ptr)
+        elif issubclass(type(other), TokenStream):
+            return TokenStream(self.__tokens + other.__tokens, self.__ptr)
+        else:
+            raise Exception(f"Cannot add `{type(other)}` to TokenStream.")
 
     def __repr__(self) -> str:
         return str(self)
