@@ -1,5 +1,5 @@
 from kode.utils import print_span
-from .statements import Conditional, IdentifierStatement, LiteralStatement, Loop, Statement, Statements, Assignment, Operation, Show, statementize
+from .statements import Conditional, IdentifierStatement, Input, LiteralStatement, Loop, Statement, Statements, Assignment, Operation, Show, statementize
 from .tokens import Identifier, Literal, LiteralType, OperatorType, tokenize
 from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
@@ -250,6 +250,21 @@ class ShowInterpreter(StatementInterpreter):
 
         return literal + self._statement.span
 
+class InputInterpreter(StatementInterpreter):
+    def can_interpret(self) -> bool:
+        return type(self._statement) == Input
+
+    def interpret(self, interpreter: 'Interpreter'):
+        value = interpreter.read()
+
+        if value.isalpha():
+            value = '"' + value + '"'
+
+        span = self._statement.span
+        span.value = value
+
+        return Literal(span)
+
 class LiteralInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
         return type(self._statement) == LiteralStatement
@@ -333,7 +348,8 @@ STATEMENT_INTERPRETERS = [
     OperationInterpreter, 
     ShowInterpreter,
     LiteralInterpreter,
-    IdentifierInterpreter
+    IdentifierInterpreter,
+    InputInterpreter
 ]
 
 class Interpreter:
@@ -357,6 +373,10 @@ class Interpreter:
     @property
     def stdout(self) -> str:
         return self.__stdout
+
+    def read(self) -> str:
+        # TODO: Not only input().
+        return input()
 
     def display(self, line: str, terminator: str = "\n"):
         self.__stdout += str(line) + terminator

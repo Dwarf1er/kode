@@ -160,6 +160,7 @@ class ReservedType(Enum):
     SET = auto()
     TO = auto()
     SHOW = auto()
+    INPUT = auto()
 
 END_BOUNDED_RESERVES = [ReservedType.IF, ReservedType.WHILE]
 

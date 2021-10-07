@@ -264,6 +264,29 @@ class Show(Statement):
 
         return Show(show.span, statements)
 
+class Input(Statement):
+    __span: Span
+
+    def __init__(self, span: Span):
+        self.__span = span
+
+    @property
+    def span(self):
+        return self.__span
+
+    def __str__(self) -> str:
+        return f"Input"
+
+    @classmethod
+    def istype(cls, tokens: TokenStream):
+        tokens.nxt(ReservedType.INPUT)
+
+    @classmethod
+    def parse(cls, tokens: TokenStream):
+        input_token = tokens.pop()
+
+        return Input(input_token.span)
+
 class Conditional(Statement):
     __span: Span
     __condition: Statement
@@ -437,6 +460,7 @@ STATEMENT_TYPES = [
     Loop,
     Show,
     Assignment,
+    Input,
     Operation,
 ]
 

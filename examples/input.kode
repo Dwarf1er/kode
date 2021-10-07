@@ -1,0 +1,3 @@
+SHOW "Input:".
+SET X TO INPUT.
+SHOW X.
