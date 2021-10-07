@@ -203,6 +203,51 @@ class OrInterpreter(OperatorInterpreter):
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
         return lhs.value or rhs.value
 
+class BorInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.BOR
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value | rhs.value
+
+class BandInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.BAND
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value & rhs.value
+
+class XorInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.XOR
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value ^ rhs.value
+
+class ShlInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.SHL
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value << rhs.value
+
+class ShrInterpreter(OperatorInterpreter):
+    @classmethod
+    def can_interpret(cls, operator: OperatorType) -> bool:
+        return operator == OperatorType.SHR
+
+    @classmethod
+    def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        return lhs.value >> rhs.value
+
 OPERATOR_INTERPRETERS = [
     PlusInterpreter,
     MinusInterpreter,
@@ -213,7 +258,12 @@ OPERATOR_INTERPRETERS = [
     GreaterInterpreter,
     LessInterpreter,
     AndInterpreter,
-    OrInterpreter
+    OrInterpreter,
+    BandInterpreter,
+    BorInterpreter,
+    XorInterpreter,
+    ShlInterpreter,
+    ShrInterpreter
 ]
 
 class OperationInterpreter(StatementInterpreter):

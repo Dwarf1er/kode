@@ -193,6 +193,11 @@ class OperatorType(Enum):
     LESS = auto()
     AND = auto()
     OR = auto()
+    XOR = auto()
+    BAND = auto()
+    BOR = auto()
+    SHL = auto() 
+    SHR = auto()
 
 OPERATOR_PRECEDENCE = {
     OperatorType.MOD: 15,
@@ -204,7 +209,12 @@ OPERATOR_PRECEDENCE = {
     OperatorType.GREATER: 12,
     OperatorType.LESS: 12,
     OperatorType.AND: 7,
-    OperatorType.OR: 6
+    OperatorType.OR: 6,
+    OperatorType.XOR: 9,
+    OperatorType.BAND: 10,
+    OperatorType.BOR: 8,
+    OperatorType.SHL: 13,
+    OperatorType.SHR: 13
 }
 
 class Operator(Token):
