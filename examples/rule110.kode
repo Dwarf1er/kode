@@ -1,0 +1,50 @@
+SET MAX_ROW TO 20.
+SET MAX_COL TO 30.
+
+SET I TO 0.
+SET ROW TO 1247.
+
+WHILE I LESS THAN MAX_ROW DO
+    SET J TO 1.
+    SET NEW_ROW TO 0.
+
+    WHILE J LESS THAN MAX_COL DO
+        SET J1 TO J MINUS 1.
+
+        SET SHIFT TO ROW SHR J1.
+
+        SET PREV TO SHIFT BAND 7.
+
+        SET BIT TO IF PREV EQUALS 0 OR PREV EQUALS 4 OR PREV EQUALS 7 THEN
+            0
+        ELSE
+            1
+        END.
+        
+        SET NEW_ROW TO NEW_ROW BOR BIT SHL J.
+        SET J TO J PLUS 1.
+    END
+
+    SET ROW TO NEW_ROW.
+
+    SET DISPLAY TO "".
+    SET J TO 0.
+
+    WHILE J LESS THAN MAX_COL DO
+        SET SHIFT TO ROW SHR J.
+        SET BIT TO SHIFT BAND 1.
+        SET CHAR TO IF BIT EQUALS 1 THEN 
+            "*"
+        ELSE
+            " "
+        END.
+
+        SET DISPLAY TO CHAR PLUS DISPLAY.
+
+        SET J TO J PLUS 1.
+    END
+
+    SHOW DISPLAY.
+
+    SET I TO I PLUS 1.
+END

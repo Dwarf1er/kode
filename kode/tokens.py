@@ -115,11 +115,11 @@ class Literal(Token):
 
             return Literal(span), i
 
-        if span.value[0] in STRING_DELIMITERS:
-            string_terminator = span.value[0]
+        if span.value in STRING_DELIMITERS:
+            string_terminator = span.value
 
-            for j, iter_span in enumerate(spans):
-                if iter_span.value.endswith(string_terminator):
+            for j, iter_span in enumerate(spans[1:], 1):
+                if iter_span.value == string_terminator:
                     for inner_span in spans[:j+1]:
                         span += inner_span
                     return Literal(span), j+1
@@ -265,6 +265,8 @@ class Identifier(Token):
 class PunctuationType(Enum):
     PERIOD = "."
     MINUS = "-"
+    DOUBLE_QUOTE = '"'
+    QUOTE = "'"
 
 class Punctuation(Token):
     def __str__(self) -> str:
@@ -287,7 +289,6 @@ TOKEN_TYPES = [
     Punctuation,
     Operator,
     Reserved,
-    Literal,
     Identifier
 ]
 

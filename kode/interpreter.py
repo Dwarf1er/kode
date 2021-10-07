@@ -320,9 +320,9 @@ class LiteralInterpreter(StatementInterpreter):
         return type(self._statement) == LiteralStatement
 
     def interpret(self, interpreter: 'Interpreter'):
-        value = self._statement.literal.value
+        literal = self._statement.literal
 
-        return get_literal(value, spanned_objects=[self._statement])
+        return literal + self._statement.span
 
 class IdentifierInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:
