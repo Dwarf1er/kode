@@ -7,7 +7,7 @@ on:
 
 jobs:
   get_tests:
-    name: Get Tests 
+    name: Get Tests 🔍
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.get_test.outputs.matrix }}
@@ -16,7 +16,7 @@ jobs:
       - name: Get Tests
         id: get_test
         run: |
-          cd ./tests && ls *.kode | sed 's/.\{5\}$//' | awk '{print "\""$1"\""}' | tr "\n" "," | sed 's/.$//' | awk '{print "::set-ouput name=matrix::{\"test_name\":["$1"]}"}'
+          cd ./tests && ls *.kode | sed 's/.\{5\}$//' | awk '{print "\""$1"\""}' | tr "\n" "," | sed 's/.$//' | awk '{print "::set-output name=matrix::{\"test_name\":["$1"]}"}'
 
   execute_all_tests:
     needs: get_tests
