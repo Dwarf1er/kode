@@ -8,7 +8,7 @@ on:
 jobs:
   executeAllTests:
     name: Test ${{ matrix.test_name }} 🔬
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
