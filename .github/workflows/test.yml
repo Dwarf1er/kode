@@ -6,6 +6,17 @@ on:
       - master
 
 jobs:
+  test_execution:
+    name: Test Execution 🏃
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Empty File
+        run: |
+          touch ./empty.kode
+      - name: Run Executable
+        run: |
+          python3 run.py ./empty.kode
+
   get_tests:
     name: Get Tests 🔍
     runs-on: ubuntu-latest
@@ -19,7 +30,7 @@ jobs:
           cd ./tests && ls *.kode | sed 's/.\{5\}$//' | awk '{print "\""$1"\""}' | tr "\n" "," | sed 's/.$//' | awk '{print "::set-output name=matrix::{\"test_name\":["$1"]}"}'
 
   execute_all_tests:
-    needs: get_tests
+    needs: [test_execution, get_tests]
     name: Test ${{ matrix.test_name }} 🔬
     runs-on: ubuntu-latest
     strategy:

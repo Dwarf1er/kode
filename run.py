@@ -12,6 +12,8 @@ def main():
     with open(args.file) as h:
         source = h.read()
 
+    if len(source.strip()) == 0: return
+
     AST = parse(source, file_path)
 
     if AST == None: return
