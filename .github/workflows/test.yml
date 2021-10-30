@@ -10,6 +10,7 @@ jobs:
     name: Test Execution 🏃
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Create Empty File
         run: |
           touch ./empty.kode
