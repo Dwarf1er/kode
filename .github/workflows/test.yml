@@ -6,15 +6,25 @@ on:
       - master
 
 jobs:
-  executeAllTests:
+  get_tests:
+    name: Get Tests 
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get_test.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Tests
+        id: get_test
+        run: |
+          cd ./tests && ls *.kode | sed 's/.\{5\}$//' | awk '{print "\""$1"\""}' | tr "\n" "," | sed 's/.$//' | awk '{print "::set-ouput name=matrix::{\"test_name\":["$1"]}"}'
+
+  execute_all_tests:
+    needs: get_tests
     name: Test ${{ matrix.test_name }} 🔬
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        test_name:
-          - basic_bools
-          - basic_conditional
+      matrix: ${{ fromJSON(needs.get_tests.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v2
       - name: Run test
