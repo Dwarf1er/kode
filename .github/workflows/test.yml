@@ -7,7 +7,7 @@ on:
 
 jobs:
   executeAllTests:
-    stategy:
+    strategy:
       fail-fast: false
       matrix:
         test_name:
