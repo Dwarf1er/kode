@@ -1,0 +1,22 @@
+name: Unit Tests 🧪
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  executeAllTests:
+    stategy:
+      fail-fast: false
+      matrix:
+        test_name:
+          - basic_bools
+          - basic_conditional
+    steps:
+      - name: Run test
+        run: |
+          python3 run.py ./tests/${{ test_name }}.kode > ./result.log
+      - name: Check test
+        run: |
+          cmp ./tests/${{ test_name }}.out ./result.log
