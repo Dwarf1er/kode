@@ -91,7 +91,10 @@ class StatementsInterpreter(StatementInterpreter):
             output = interpreter.run(statement)
             outputs.append(output)
 
-        return outputs[-1]
+        if len(outputs) == 0:
+            return Literal(Span(value="", file_path=None, start=0, end=0))
+        else:
+            return outputs[-1]
 
 class AssignmentInterpreter(StatementInterpreter):
     def can_interpret(self) -> bool:

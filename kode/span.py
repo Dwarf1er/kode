@@ -66,7 +66,7 @@ class Span:
 
         return Span(
             value=value, 
-            file_path=self.__file_path,
+            file_path=self.__file_path if self.__file_path else other.file_path,
             start=new_start,
             end=new_end    
         )

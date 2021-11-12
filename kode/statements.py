@@ -20,12 +20,13 @@ class Statements(Statement):
     __statements: List[Statement]
 
     def __init__(self, statements: List[Statement]):
-        if len(statements) == 0: raise Exception("Emtpy Statements.") 
-
         self.__statements = statements
 
     @property
     def span(self):
+        if len(self.__statements) == 0:
+            return Span(value="", file_path=None, start=0, end=0)
+
         span = None
 
         for statement in self.__statements:
@@ -33,9 +34,6 @@ class Statements(Statement):
                 span = statement.span
             else:
                 span += statement.span
-
-        if span == None:
-            raise Exception("Statements without span.")
 
         return span
 
