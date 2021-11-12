@@ -1,5 +1,5 @@
 from kode import statementize, tokenize, spanize, Interpreter
-from kode.errors import handle_error
+from kode.errors import handle_error, KodeError
 from flask import Flask, render_template, request
 import os.path
 
@@ -38,6 +38,9 @@ def kode_post():
         interpreter.run()
         output = interpreter.stdout
     except Exception as err:
+        if not isinstance(err, KodeError):
+            raise err
+
         error = True
         output = ""
         output += f"|\n| {err.__class__.__name__}: " + str(err) + "\n|\n"

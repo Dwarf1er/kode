@@ -31,7 +31,7 @@
     <div class="container" style="max-width: 100%;">
         <form class="row" style="height: 90vh" method="POST">
             <div class="col-8">
-                <textarea id="code" name="code" class="form-control" style="height: 100%; resize: none;">{{ code }}</textarea>
+                <textarea id="code" name="code" class="form-control" style="height: 100%; resize: none;" onkeydown="if(event.keyCode===9){let v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false}">{{ code }}</textarea>
             </div>
             <div class="col-4">
                 <div class="btn-group" style="width: 100%">

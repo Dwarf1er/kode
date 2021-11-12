@@ -120,7 +120,10 @@ class PlusInterpreter(OperatorInterpreter):
 
     @classmethod
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
-        return lhs.value + rhs.value
+        if lhs.enum_type == LiteralType.STRING or rhs.enum_type == LiteralType.STRING:
+            return str(lhs.value) + str(rhs.value)
+        else:
+            return lhs.value + rhs.value
 
 class MinusInterpreter(OperatorInterpreter):
     @classmethod
