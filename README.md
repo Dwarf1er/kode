@@ -1,4 +1,4 @@
-# COMP354 - Kode
+# Kode
 
 Kode is a simple programming language written mostly in natural language. This repository contains the specification and implementation of the language.
 
