@@ -1,7 +1,7 @@
 from kode import statementize, tokenize, spanize, Interpreter
 from kode.errors import handle_error, KodeError
 from flask import Flask, render_template, request
-import os.path
+import os
 
 app = Flask(__name__)
 
@@ -15,7 +15,13 @@ def help():
 
 @app.route("/examples")
 def examples():
-    return render_template("examples.html")
+    root_dir = "./examples"
+    examples = []
+    for sub_dir, dirs, files in os.walk(root_dir):
+        for file in files:
+            if file.endswith(".kode"):
+                examples.append(file.split(".kode")[0])
+    return render_template("examples.html", examples=examples)
 
 @app.route("/kode")
 def kode():
