@@ -68,4 +68,5 @@ def kode_post():
             start = end
     return render_template("playground.html", code=request.form["code"], output=output, error=error)
 
-app.run(host="0.0.0.0", port=1234, debug=True)
+if __name__ == "__main__":
+    app.run(port=5000)
