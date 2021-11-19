@@ -9,10 +9,6 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
-@app.route("/help")
-def help():
-    return render_template("help.html")
-
 @app.route("/examples")
 def examples():
     root_dir = "./examples"
@@ -23,7 +19,7 @@ def examples():
                 examples.append(file.split(".kode")[0])
     return render_template("examples.html", examples=examples)
 
-@app.route("/kode")
+@app.route("/playground")
 def kode():
     code=""
     if "example" in request.args:
@@ -31,9 +27,9 @@ def kode():
         if os.path.exists(path):
             with open(path) as h:
                 code=h.read()
-    return render_template("kode.html", code=code)
+    return render_template("playground.html", code=code)
 
-@app.route("/kode", methods=["POST"])
+@app.route("/playground", methods=["POST"])
 def kode_post():
     try:
         error = False
@@ -70,6 +66,6 @@ def kode_post():
                 output += "|" + " " * (len(line_num) + 1) + " " + ''.join("^" if p else " " for p in ptrs) + "\n"
 
             start = end
-    return render_template("kode.html", code=request.form["code"], output=output, error=error)
+    return render_template("playground.html", code=request.form["code"], output=output, error=error)
 
 app.run(host="0.0.0.0", port=1234, debug=True)
