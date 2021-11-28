@@ -361,7 +361,16 @@ class TokenStream:
         while not self.empty() and not self.cnxt(value_type):
             tokens.append(self.pop())
 
-        if self.empty() and not includes_end: raise IndexError()
+        if self.empty() and not includes_end:
+            if len(tokens) == 0:
+                spans = Span("", "", 0, 0)
+            else:
+                spans = tokens[0].span
+
+                for token in tokens[1:]:
+                    spans += token.span
+
+                raise ParseError(spans, "Could not parse token stream.")
 
         return TokenStream(tokens)
 
