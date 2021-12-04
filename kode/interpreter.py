@@ -175,6 +175,9 @@ class EqualsInterpreter(OperatorInterpreter):
 
     @classmethod
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        if lhs.enum_type == LiteralType.NONE and rhs.enum_type == LiteralType.NONE:
+            return True
+
         return lhs.value == rhs.value 
 
 class GreaterInterpreter(OperatorInterpreter):
@@ -184,6 +187,7 @@ class GreaterInterpreter(OperatorInterpreter):
 
     @classmethod
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
+        print(lhs, rhs)
         return lhs.value > rhs.value
 
 class LessInterpreter(OperatorInterpreter):
@@ -332,7 +336,9 @@ class InputInterpreter(StatementInterpreter):
         # if value == None:
             # raise InterpreterError(self._statement.span, "Could not get input.")
 
-        if value.isalpha():
+        if not value:
+            value = "None"
+        elif value.isalpha():
             value = '"' + value + '"'
 
         span = self._statement.span

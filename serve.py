@@ -31,6 +31,7 @@ def kode():
 
 @app.route("/playground", methods=["POST"])
 def kode_post():
+    interpreter = None
     try:
         user_input = request.form["input"].split("\n")
 
@@ -51,7 +52,10 @@ def kode_post():
             raise err
 
         error = True
-        output = ""
+        if interpreter:
+            output = interpreter.stdout
+        else:
+            output = ""
         output += f"|\n| {err.__class__.__name__}: " + str(err) + "\n|\n"
         span = err.span
         source = request.form['code']
