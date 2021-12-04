@@ -66,7 +66,9 @@ class Literal(Token):
     def enum_type(self) -> LiteralType:
         value = self.span.value
 
-        if value[0] in STRING_DELIMITERS:
+        if len(value) == 0:
+            return LiteralType.STRING
+        elif value[0] in STRING_DELIMITERS:
             return LiteralType.STRING
         elif isint(value):
             return LiteralType.INTEGER
