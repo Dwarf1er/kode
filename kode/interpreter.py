@@ -327,9 +327,10 @@ class InputInterpreter(StatementInterpreter):
 
     def interpret(self, interpreter: 'Interpreter'):
         value = interpreter.read()
-
-        if value == None:
-            raise InterpreterError(self._statement.span, "Could not get input.")
+        
+        # TODO: Maybe we want this behaviour?
+        # if value == None:
+            # raise InterpreterError(self._statement.span, "Could not get input.")
 
         if value.isalpha():
             value = '"' + value + '"'
