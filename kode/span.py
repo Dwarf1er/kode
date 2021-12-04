@@ -53,7 +53,7 @@ class Span:
         new_start = min(self.start, other.start)
         new_end = max(self.end, other.end)
 
-        new_size = new_end - new_start
+        new_size = len(self) + len(other) + abs(self.start - other.start)
         new_value = [" "] * new_size
 
         for i, c in enumerate(self.value, self.start - new_start):
@@ -61,8 +61,8 @@ class Span:
 
         for i, c in enumerate(other.value, other.start - new_start):
             new_value[i] = c
-        
-        value = "".join(new_value)
+
+        value = "".join(new_value).strip()
 
         return Span(
             value=value, 

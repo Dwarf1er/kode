@@ -32,11 +32,18 @@ def kode():
 @app.route("/playground", methods=["POST"])
 def kode_post():
     try:
+        user_input = request.form["input"].split("\n")
+
+        def get_input() -> str:
+            if len(user_input) == 0:
+                return None
+            return user_input.pop(0).strip()
+
         error = False
         spans = spanize(request.form["code"], "web")
         tokens = tokenize(spans)
         ast = statementize(tokens)
-        interpreter = Interpreter(ast, silent=True)
+        interpreter = Interpreter(ast, silent=True, input_method=get_input)
         interpreter.run()
         output = interpreter.stdout
     except Exception as err:
@@ -66,7 +73,7 @@ def kode_post():
                 output += "|" + " " * (len(line_num) + 1) + " " + ''.join("^" if p else " " for p in ptrs) + "\n"
 
             start = end
-    return render_template("playground.html", code=request.form["code"], output=output, error=error)
+    return render_template("playground.html", code=request.form["code"], input=request.form["input"], output=output, error=error)
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(port=5000, debug=True)

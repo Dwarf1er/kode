@@ -3,7 +3,7 @@ from .statements import Conditional, IdentifierStatement, Input, LiteralStatemen
 from .tokens import Identifier, Literal, LiteralType, OperatorType, tokenize
 from .span import Span, spanize
 from .errors import ParseError, InterpreterError, handle_error
-from typing import Dict, List
+from typing import Dict, List, Callable
 from abc import ABC
 
 def get_literal(value: any, spanned_objects: list):
@@ -324,6 +324,9 @@ class InputInterpreter(StatementInterpreter):
     def interpret(self, interpreter: 'Interpreter'):
         value = interpreter.read()
 
+        if value == None:
+            raise InterpreterError(self._statement.span, "Could not get input.")
+
         if value.isalpha():
             value = '"' + value + '"'
 
@@ -359,7 +362,8 @@ class ConditionalInterpreter(StatementInterpreter):
 
         literal = interpreter.run(self._statement.condition)
 
-        if not literal.enum_type == LiteralType.BOOLEAN: raise InterpreterError(literal.span, f"Cannot perform conditional with {literal.enum_type}.")
+        if not literal.enum_type == LiteralType.BOOLEAN: 
+            raise InterpreterError(literal.span, f"Cannot perform conditional with {literal.enum_type}.")
 
         if literal.value:
             return_literal = interpreter.run(self._statement.pass_statement)
@@ -425,13 +429,15 @@ class Interpreter:
     __silent: bool
     __debug: bool
     __scope: Scope
+    __input_method: Callable[[], str]
 
-    def __init__(self, ast: Statements, silent: bool = False, debug: bool = False):
+    def __init__(self, ast: Statements, silent: bool = False, debug: bool = False, input_method: Callable[[], str] = input):
         self.__ast = ast
         self.__stdout = ""
         self.__silent = silent
         self.__debug = debug
         self.__scope = Scope()
+        self.__input_method = input_method
 
     @property
     def scope(self):
@@ -442,8 +448,7 @@ class Interpreter:
         return self.__stdout
 
     def read(self) -> str:
-        # TODO: Not only input().
-        return input()
+        return self.__input_method()
 
     def display(self, line: str, terminator: str = "\n"):
         self.__stdout += str(line) + terminator

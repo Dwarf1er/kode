@@ -326,23 +326,26 @@ class Conditional(Statement):
             if tokens.cnxt(ReservedType.END):
                 end_count -= 1
 
+                if end_count < 0:
+                    raise ParseError(tokens.pop(), "End count is negative.")
+
                 if end_count == 0:
                     end_token = tokens.pop()
                     break
 
             if end_count == 1 and tokens.cnxt(ReservedType.ELSE):
-                if else_token:
-                    raise ParseError(tokens.peek().span, "Too many else.")
-                else:
+                if not else_token:
                     else_token = tokens.pop()
                     continue
+
+                raise ParseError(tokens.peek().span, "Too many else.")
 
             if else_token:
                 fail_body += tokens.pop()
             else:
                 pass_body += tokens.pop()
         else:
-            raise ParseError(if_token.span, "Unable to parse conditional statement.")
+            raise ParseError(if_token.span + then_token.span + pass_body.span + fail_body.span, "Conditional statement is not closed.")
 
         span = if_token.span + then_token.span + end_token.span
 

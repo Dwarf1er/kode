@@ -317,14 +317,14 @@ class TokenStream:
         
         return span
 
-    def cnxt(self, value_types: any = None) -> bool:
+    def cnxt(self, value_types: any = None, offset: int = 0) -> bool:
         if self.__ptr >= len(self.__tokens): 
             raise Exception("Peek out of bound.")
 
         if not type(value_types) == list:
             value_types = [value_types]
 
-        token = self.__tokens[self.__ptr]
+        token = self.__tokens[self.__ptr + offset]
         token_type = type(token)
 
         for value_type in value_types:
