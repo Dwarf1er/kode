@@ -187,7 +187,6 @@ class GreaterInterpreter(OperatorInterpreter):
 
     @classmethod
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
-        print(lhs, rhs)
         return lhs.value > rhs.value
 
 class LessInterpreter(OperatorInterpreter):
