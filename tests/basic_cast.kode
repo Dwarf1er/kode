@@ -1,0 +1,4 @@
+SHOW "0" PLUS 0.
+SHOW 0 PLUS "0".
+SHOW 0.1 PLUS "0".
+SHOW "0" PLUS 0.1.

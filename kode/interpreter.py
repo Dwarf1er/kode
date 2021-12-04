@@ -123,8 +123,12 @@ class PlusInterpreter(OperatorInterpreter):
 
     @classmethod
     def interpret(cls, lhs: Literal, rhs: Literal) -> any:
-        if lhs.enum_type == LiteralType.STRING or rhs.enum_type == LiteralType.STRING:
-            return str(lhs.value) + str(rhs.value)
+        if lhs.enum_type == LiteralType.STRING:
+            return lhs.value + str(rhs.value)
+        elif lhs.enum_type == LiteralType.FLOAT:
+            return lhs.value + float(rhs.value)
+        elif lhs.enum_type == LiteralType.INTEGER:
+            return lhs.value + int(rhs.value)
         else:
             return lhs.value + rhs.value
 
