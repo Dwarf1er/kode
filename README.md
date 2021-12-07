@@ -14,6 +14,20 @@ You can install the requirments for this project as follows:
 
 ```
 sudo apt install python3
+
+python3 -m venv ./.venv
+source ./.venv/bin/active
+pip3 install -r requirements.txt
+```
+
+### Windows
+
+Install Python from [here](https://www.python.org/).
+
+```
+python3 -m venv ./.venv
+source ./.venv/bin/Active.ps1
+pip3 install -r requirements.txt
 ```
 
 ## Running
